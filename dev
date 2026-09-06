@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Purchase Desk development entry point.
+#   ./dev test  - run all tests
+#   ./dev build - compile and produce the distributable jar
+#   ./dev serve --host 127.0.0.1 --port PORT --db PATH
+#   ./dev seed --db PATH --users-file PATH
+#   ./dev backup --db PATH --output PATH
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+JAR="$ROOT/build/libs/purchase-desk-1.0.0.jar"
+
+if ! command -v java >/dev/null 2>&1; then
+  echo "java is required (Java 17)" >&2
+  exit 1
+fi
+
+cmd="${1:-}"
+[ $# -gt 0 ] && shift
+
+case "$cmd" in
+  test)
+    exec "$ROOT/gradlew" --no-daemon --console=plain --max-workers=2 test </dev/null
+    ;;
+  build)
+    exec "$ROOT/gradlew" --no-daemon --console=plain --max-workers=2 build -x test </dev/null
+    ;;
+  serve|seed|backup)
+    if [ ! -f "$JAR" ]; then
+      echo "Building application jar..." >&2
+      "$ROOT/gradlew" -q build -x test
+    fi
+    exec java -jar "$JAR" "$cmd" "$@"
+    ;;
+  *)
+    echo "Usage: ./dev {test|build|serve|seed|backup} [args]" >&2
+    exit 1
+    ;;
+esac

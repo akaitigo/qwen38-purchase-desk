@@ -1,0 +1,17 @@
+.gradle/
+build/
+.evaluation/
+*.db
+*.db-shm
+*.db-wal
+
+# Local credentials and runtime files
+/users.json
+/.env
+/.env.*
+/data/
+/backup/
+/restored/
+*.log
+*.pem
+*.key
