@@ -10,5 +10,6 @@ if [[ -z "${JAVA_HOME:-}" && "$(uname -s)" == Darwin ]]; then
   export PATH="$JAVA_HOME/bin:$PATH"
 fi
 python3 -m unittest discover -s tests -p 'test_serverless_docs.py' -v
+python3 -m unittest discover -s tests -p 'test_docs_pipeline.py' -v
 ./dev test
 ./dev build
