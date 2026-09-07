@@ -37,11 +37,10 @@ def review_payload(entries, document):
         'required': ['reviews', 'unknowns_verdict', 'unknowns_reason'], 'properties': {
             'reviews': {'type': 'array', 'minItems': len(topics), 'maxItems': len(topics), 'items': row},
             'unknowns_verdict': verdict, 'unknowns_reason': {'type': 'string', 'minLength': 1, 'maxLength': 180}}}
-    # Keep explanations short while allowing reasoning about control flow.
-    # Truncated reasoning is still rejected, never treated as a valid assessment.
-    p = make_payload(entries, topics, thinking=True)
+    # The live thinking reviewer exhausted both 4096 and 6144-token budgets.
+    # Short direct reviews completed the loop but still need human inspection.
+    p = make_payload(entries, topics, thinking=False)
     request = p['input']['openai_input']
-    request['max_tokens'] = 6144
     request['response_format']['json_schema'] = {'name': 'source_review', 'schema': schema}
     request['messages'] = [
         {'role': 'system', 'content':
