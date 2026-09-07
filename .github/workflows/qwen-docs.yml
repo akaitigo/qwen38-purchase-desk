@@ -54,7 +54,7 @@ jobs:
         run: >-
           python3 scripts/docs_pipeline.py
           --repo . --files config/docs-source-files.txt
-          --max-repairs 1 --max-jobs 4 --total-seconds 900
+          --max-repairs 1 --max-jobs 4 --total-seconds 720
           --out generated/qwen-docs
       - name: Save document and execution metadata
         if: always()
