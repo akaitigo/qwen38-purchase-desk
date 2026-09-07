@@ -51,14 +51,61 @@ class Jobs(unittest.TestCase):
     def test_truncated_document_rejected(self):
         with self.assertRaises(ValueError):module.extract_document({'output':[{'choices':[{'finish_reason':'length'}]}]},[])
 
-    def test_evidence_must_exist_in_selected_source(self):
-        entries=[{'path':'src/main/A.kt','text':'fun approve() {}'}]
-        doc={'markdown':'## 概要\n説明\n## APIと権限制御\n説明\n## 未確認\n未確認','sources':[{'path':'src/main/A.kt','symbol':'invented'}]}
-        result={'output':[{'choices':[{'finish_reason':'stop','message':{'content':json.dumps(doc)}}]}]}
-        with self.assertRaises(ValueError):module.extract_document(result,entries)
-        doc['sources'][0]['symbol']='approve'
-        result['output'][0]['choices'][0]['message']['content']=json.dumps(doc)
-        self.assertEqual(module.extract_document(result,entries)[0],doc)
+    def fixture(self):
+        entries = [{'path':'src/main/A.kt','text':'fun approve() { return approved }'}]
+        claims = [{'topic':t,'statement':'未確認: 入力不足','evidence':[]} for t in module.TOPICS]
+        claims[0] = {'topic':module.TOPICS[0], 'statement':'合成テスト用の説明', 'evidence':[
+            {'path':'src/main/A.kt','symbol':'approve','quote':'fun approve() { return approved }'}]}
+        return entries, {'claims':claims,'unknowns':['合成入力']}
+
+    def wrapped(self, doc):
+        return {'output':[{'choices':[{'finish_reason':'stop','message':{'content':json.dumps(doc)}}]}]}
+
+    def test_claims_render_with_review_notice_and_quotes(self):
+        entries, doc = self.fixture()
+        result, _ = module.extract_document(self.wrapped(doc), entries)
+        self.assertIn('fun approve()', result['markdown'])
+        self.assertIn('内容の確認は未実施', result['markdown'])
+
+    def test_invalid_evidence_rejected(self):
+        for field, value in [('path','src/main/Other.kt'), ('symbol','prove'), ('symbol','approve, approved'), ('quote','fun approve() { return false }')]:
+            with self.subTest(field=field, value=value):
+                entries, doc = self.fixture()
+                doc['claims'][0]['evidence'][0][field] = value
+                with self.assertRaises(ValueError): module.extract_document(self.wrapped(doc), entries)
+
+    def test_missing_duplicate_and_unsupported_topics_rejected(self):
+        for defect in ['missing', 'duplicate', 'unsupported']:
+            with self.subTest(defect=defect):
+                entries, doc = self.fixture()
+                if defect == 'missing': doc['claims'].pop()
+                elif defect == 'duplicate': doc['claims'].append(doc['claims'][0])
+                else: doc['claims'][1]['statement'] = '根拠のない説明'
+                with self.assertRaises(ValueError): module.extract_document(self.wrapped(doc), entries)
+
+    def test_legacy_response_not_silently_accepted(self):
+        with self.assertRaises(ValueError): module.extract_document(self.wrapped({'markdown':'旧形式','sources':[]}), [])
+
+    def test_quote_existence_does_not_claim_semantic_approval(self):
+        entries, doc = self.fixture()
+        doc['claims'][0]['statement'] = 'この引用からは裏付けられない説明'
+        result, _ = module.extract_document(self.wrapped(doc), entries)
+        self.assertIn('内容の確認は未実施', result['markdown'])
+
+    def test_offline_replay_never_constructs_api(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); entries, doc = self.fixture()
+            response = root/'response.json'; response.write_text(json.dumps(self.wrapped(doc)))
+            names = root/'files.txt'; names.write_text('src/main/A.kt')
+            out = root/'out'
+            args = ['docs','--repo',folder,'--files',str(names),'--out',str(out),'--response',str(response)]
+            with patch('sys.argv',args), patch.object(module,'source_bundle',return_value=[dict(entries[0],sha256='test')]), patch.object(module.subprocess,'check_output',return_value=b'test-head'), patch.object(module,'API') as api:
+                module.main(); api.assert_not_called()
+            record=json.loads((out/'metadata.json').read_text())
+            self.assertEqual(record['execution_mode'],'offline_replay')
+            self.assertEqual(record['semantic_review'],'not_performed')
+            self.assertTrue((out/'REVIEW.md').exists())
 
     def test_source_selection_rejects_untracked_and_symlinks(self):
         with tempfile.TemporaryDirectory() as folder:

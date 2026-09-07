@@ -1,0 +1,12 @@
+schemaVersion: 1
+id: qwen38-purchase-desk
+classification: reference-implementation
+lifecycle: active
+sensitivity: public
+hostClass: portable
+commands:
+  verify: ./scripts/verify-all.sh
+externalWrites:
+  github: allowed
+  cloud: denied
+  existingRepositories: denied

@@ -3,9 +3,10 @@
 Runpodの公式vLLM worker v2.26.0に、選択したソースを非同期ジョブとして渡します。
 Qwen Codeによる編集ではなく、推論APIでの文書生成です。元のアプリの制作過程とは別の追加検証です。
 
-`config/docs-source-files.txt` の4ファイルを対象に、日本語のAPI説明と根拠ファイル・識別子を生成します。
+`config/docs-source-files.txt` の4ファイルを対象に、11項目の日本語の説明と、根拠ファイル・識別子・ソースの抜粋を生成します。
 生成物はGitHub ActionsのArtifactsに7日間保存します。生成内容はレビュー前の草稿です。
-形式と参照先の存在は検査しますが、説明の正確さ・網羅性は人がソースと照合する必要があります。
+APIとHTMLのログアウトは別項目として扱います。説明と引用を並べた文書をローカルで組み立て、`claims.json` と `REVIEW.md` も保存します。
+項目の不足・重複、引用と識別子の存在は検査しますが、説明の正確さ・網羅性は人がソースと照合する必要があります。
 
 ## 実行設定
 
@@ -37,3 +38,17 @@ python3 scripts/serverless_docs.py --repo . --files config/docs-source-files.txt
 実行時は `--dry-run` を外し、上記の環境変数を設定します。
 
 仕様： https://docs.runpod.io/serverless/endpoints/send-requests
+
+## 保存済み応答の再検査
+
+```sh
+python3 scripts/serverless_docs.py --repo . --files config/docs-source-files.txt \
+  --response saved-response.json --out /tmp/purchase-docs-replay
+```
+
+このモードはRunpodへ接続せず、新形式の応答を検査します。以前の自由形式の応答は受け付けません。引用が存在するだけでは説明の正確さは証明できず、意味の確認は未実施として記録します。
+
+## 検証状況
+
+2026-09-07の初回Actions実行では、Runpodからの応答取得まで動作しましたが、識別子の出力形式が合わずCIは失敗しました。その後の直接呼出しでは形式検査に合格したものの、APIとHTMLの挙動の混同などがありました。
+今回の改善は、説明ごとの引用と確認項目を要求するものです。オフラインの検証は実施していますが、この新形式でのQwen生成とActionsの成功はまだ確認していません。現在CIは無効で、実測用endpointと一時secretは削除済みです。
