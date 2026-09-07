@@ -12,6 +12,14 @@ spec.loader.exec_module(module)
 
 
 class Jobs(unittest.TestCase):
+    def test_thinking_is_explicit_and_keeps_output_budget(self):
+        entries, _ = self.fixture()
+        default = module.make_payload(entries)['input']['openai_input']
+        thinking = module.make_payload(entries, thinking=True)['input']['openai_input']
+        self.assertFalse(default['chat_template_kwargs']['enable_thinking'])
+        self.assertTrue(thinking['chat_template_kwargs']['enable_thinking'])
+        self.assertEqual(thinking['max_tokens'], default['max_tokens'])
+
     def test_repair_is_bound_to_sources_and_selected_claims(self):
         entries, doc = self.fixture()
         topic = module.TOPICS[0]
