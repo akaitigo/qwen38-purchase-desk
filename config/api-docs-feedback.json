@@ -1,50 +1,28 @@
 {
-  "getSession": [
-    {
-      "field": "/operation/responses/200/content/application~1json/schema/properties/user",
-      "reason": "Json.sessionJsonでは非nullのuserにusernameとroleが必ず存在します。nullableは維持し、非nullオブジェクトのrequiredに両方を指定してください。"
-    }
-  ],
   "login": [
     {
       "field": "/operation/description",
-      "reason": "ApiServer.handleLoginの順序はPOST→sameOrigin→parseJson→CSRF→認証です。JSON解析を省略しない。sameOriginはOrigin優先、無ければReferer、両方無い時のみ検査省略です。JSON APIのloginはparseJsonを先に呼ぶのでフォーム本文のcsrfTokenでログイン可能という説明は削除しX-CSRF-Tokenを案内してください。関連説明も整合させてください。"
-    }
-  ],
-  "createRequest": [
-    {
-      "field": "/operation/security",
-      "reason": "セッションCookieとCSRFヘッダーは両方必要です。同一Security Requirement Object内にsessionCookieとcsrfHeaderを指定してください。"
-    },
-    {
-      "field": "/operation/description",
-      "reason": "sameOriginはOrigin優先、無ければReferer、両方無い場合はtrue。欠落だけで403という記載を直してください。"
-    },
-    {
-      "field": "/operation/responses/201/headers",
-      "reason": "handleRequestsのPOST成功レスポンスはSet-Cookieを返しません。実際に設定しないSet-Cookieヘッダー定義を削除してください。"
-    }
-  ],
-  "logout": [
-    {
-      "field": "/operation/responses/200/content/application~1json/schema/properties/user",
-      "reason": "OpenAPI3.1ではnullable:trueではnullを許容しません。ログアウト後のuserは常にnullなので、このスキーマをtype:null（JSON文字列としてnull）に置換しnullableとobject用propertiesを削除してください。例user:nullと一致させる必要があります。"
-    },
-    {
-      "field": "/operation/description",
-      "reason": "匿名時はanonymousContext(req)==nullなら403です。匿名Cookieが無い場合も失敗します。現説明はCookieが有るがCSRF不一致だけ拒否するように読めるため修正。sameOriginはOrigin優先、Referer代替、両方無い場合のみ省略です。"
+      "reason": "前回修正後も『OriginまたはRefererヘッダーが欠落している場合、Same-Originチェックはスキップ』が残っています。これは誤り。この1文を『Originを優先し、Originが無い場合はRefererを確認します。両方のヘッダーが無い場合に限りチェックを省略します。』に置換してください。他の説明は維持。"
     }
   ],
   "listRequests": [
     {
       "field": "/operation/description",
       "reason": "Database.listRequestsはid DESCですがIDはランダムUUIDです。『新しい順』は誤りなので削除してください。またDBのセッション検索には期限判定が無く、Cookie Max-Ageはブラウザーの保持期間です。サーバーが期限切れを検出して401を返すという説明を削除し、Cookie欠落/不明なトークンの401と区別してください。レスポンス説明も同様。"
+    },
+    {
+      "field": "/operation/responses/200/content/application~1json/schema/properties/requests/description",
+      "reason": "JSON Pointerのキーapplication/jsonは必ずapplication~1jsonと書く。このfield値をそのままpathに使い、『購入申請の配列。IDの降順で、作成日時順ではありません。』にしてください。エスケープしない/ content/application/json/は存在せず適用できません。"
     }
   ],
   "updateRequest": [
     {
       "field": "/operation/description",
       "reason": "Service.updateではrequireEmployeeの後、他社員の申請はcanView=falseでnotFound、404になります。APPROVERは403、他社員は404に修正し、レスポンス403/404の説明も整合させてください。"
+    },
+    {
+      "field": "/operation/responses/401/description",
+      "reason": "ここにも期限切れの記載があります。サーバー側は期限を判定しないためCookie欠落・無効のみを説明してください。"
     }
   ],
   "submitRequest": [
