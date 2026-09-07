@@ -1,0 +1,155 @@
+name: API documentation format checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feat/qwen-docs-ci]
+    paths:
+      - 'src/main/**'
+      - 'config/api-docs-*'
+      - 'scripts/api_docs.py'
+      - 'scripts/api_docs_context.py'
+      - 'scripts/check_api_docs.py'
+      - 'scripts/api_docs_pipeline.py'
+      - 'scripts/api_docs_tokens.py'
+      - 'scripts/serverless_docs.py'
+      - 'tests/api_docs_fixture.py'
+      - 'tests/test_api_docs.py'
+      - 'tests/test_api_docs_context.py'
+      - 'tests/test_api_docs_pipeline.py'
+      - '.github/workflows/api-docs.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: api-docs
+  cancel-in-progress: false
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install locked document validators in a virtual environment
+        run: |
+          python3 -m venv .venv-docs
+          .venv-docs/bin/python -m pip install --require-hashes -r config/api-docs-requirements.txt
+      - name: Build app and check document contracts without GPU
+        run: |
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          ./scripts/verify-all.sh
+          .venv-docs/bin/python tests/test_api_docs.py --smoke-out generated/api-docs-synthetic
+          .venv-docs/bin/python tests/test_api_docs_pipeline.py --smoke-out generated/api-docs-loop-synthetic
+          .venv-docs/bin/python scripts/api_docs.py prepare --out generated/api-docs-prepared
+      - name: Save explicitly synthetic preview and local API check results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: api-docs-synthetic-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            generated/api-docs-synthetic/
+            generated/api-docs-loop-synthetic/
+            generated/api-docs-prepared/manifest.json
+          if-no-files-found: warn
+          retention-days: 7
+  generate:
+    needs: offline
+    if: vars.RUNPOD_API_DOCS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install document validators and build the local API fixture
+        run: |
+          python3 -m venv .venv-docs
+          .venv-docs/bin/python -m pip install --require-hashes -r config/api-docs-requirements.txt
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          ./dev build
+      - name: Restore a previous live candidate when explicitly selected
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DOCS_RESUME_RUN: ${{ vars.RUNPOD_API_DOCS_RESUME_RUN }}
+        run: |
+          if [[ -n "$DOCS_RESUME_RUN" ]]; then
+            [[ "$DOCS_RESUME_RUN" =~ ^[0-9]+$ ]]
+            mkdir -p generated
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$DOCS_RESUME_RUN" \
+              --jq '{id,head_sha,status,path,run_attempt,html_url}' > generated/resume-origin.json
+            jq -e '.status == "completed" and .path == ".github/workflows/api-docs.yml"' generated/resume-origin.json
+            run_sha=$(jq -r .head_sha generated/resume-origin.json)
+            run_attempt=$(jq -r .run_attempt generated/resume-origin.json)
+            gh run download "$DOCS_RESUME_RUN" --repo "$GITHUB_REPOSITORY" \
+              --name "api-docs-live-$run_sha-$run_attempt" --dir generated/api-docs-resume
+            mv generated/resume-origin.json generated/api-docs-resume/ci-origin.json
+          fi
+      - name: Restore source-aware feedback from an earlier live run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DOCS_FEEDBACK_RUN: ${{ vars.RUNPOD_API_DOCS_FEEDBACK_RUN || 'latest' }}
+        run: |
+          if [[ "$DOCS_FEEDBACK_RUN" == 'none' ]]; then exit 0; fi
+          if [[ "$DOCS_FEEDBACK_RUN" == 'latest' ]]; then
+            run_ids=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/api-docs.yml/runs" \
+              -f branch="$GITHUB_REF_NAME" -f status=completed -f per_page=10 \
+              --jq '.workflow_runs[].id')
+          else
+            [[ "$DOCS_FEEDBACK_RUN" =~ ^[0-9]+$ ]]
+            run_ids="$DOCS_FEEDBACK_RUN"
+          fi
+          for run_id in $run_ids; do
+            [[ "$run_id" != "$GITHUB_RUN_ID" ]] || continue
+            origin=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" \
+              --jq '{id,status,path,head_branch,repository:.head_repository.full_name,html_url}')
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg branch "$GITHUB_REF_NAME" \
+              '.status == "completed" and .path == ".github/workflows/api-docs.yml" and .repository == $repo and .head_branch == $branch' <<< "$origin" >/dev/null
+            artifact=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" \
+              --jq '[.artifacts[] | select(.expired == false and (.name | startswith("api-docs-live-")))] | sort_by(.id) | last | .name // empty')
+            [[ -n "$artifact" ]] || continue
+            gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "generated/feedback-$run_id"
+            if [[ -f "generated/feedback-$run_id/feedback-memory.json" ]]; then
+              mkdir -p generated/api-docs-feedback
+              cp "generated/feedback-$run_id/feedback-memory.json" generated/api-docs-feedback/feedback-memory.json
+              printf '%s\n' "$origin" > generated/api-docs-feedback/ci-origin.json
+              echo "Using feedback from CI run $run_id"
+              break
+            fi
+          done
+      - name: Generate, check, review, repair and recheck API documentation
+        env:
+          RUNPOD_ENDPOINT_ID: ${{ vars.RUNPOD_ENDPOINT_ID }}
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          DOCS_SCOPE: ${{ vars.RUNPOD_API_DOCS_SCOPE || 'auth-create' }}
+          DOCS_MAX_JOBS: ${{ vars.RUNPOD_API_DOCS_MAX_JOBS || '8' }}
+          DOCS_TOTAL_SECONDS: ${{ vars.RUNPOD_API_DOCS_TOTAL_SECONDS || '720' }}
+          DOCS_MAX_REPAIRS: ${{ vars.RUNPOD_API_DOCS_MAX_REPAIRS || '1' }}
+          DOCS_REPAIR_FORMAT: ${{ vars.RUNPOD_API_DOCS_REPAIR_FORMAT || 'document' }}
+          DOCS_RESUME_RUN: ${{ vars.RUNPOD_API_DOCS_RESUME_RUN }}
+        run: |
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          extra_args=()
+          if [[ -n "$DOCS_RESUME_RUN" ]]; then
+            extra_args+=(--resume-from generated/api-docs-resume)
+          fi
+          if [[ -f generated/api-docs-feedback/feedback-memory.json ]]; then
+            extra_args+=(--feedback-memory generated/api-docs-feedback/feedback-memory.json)
+          fi
+          trap 'if [[ -d generated/api-docs-live && -f generated/api-docs-feedback/ci-origin.json ]]; then cp generated/api-docs-feedback/ci-origin.json generated/api-docs-live/feedback-ci-origin.json; fi' EXIT
+          .venv-docs/bin/python scripts/api_docs_pipeline.py --live \
+            --scope "$DOCS_SCOPE" --max-jobs "$DOCS_MAX_JOBS" \
+            --max-repairs "$DOCS_MAX_REPAIRS" --total-seconds "$DOCS_TOTAL_SECONDS" \
+            --repair-format "$DOCS_REPAIR_FORMAT" \
+            "${extra_args[@]}" --out generated/api-docs-live
+      - name: Preserve candidate documents and verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: api-docs-live-${{ github.sha }}-${{ github.run_attempt }}
+          path: generated/api-docs-live/
+          if-no-files-found: warn
+          retention-days: 7

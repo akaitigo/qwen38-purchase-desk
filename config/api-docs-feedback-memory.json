@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "source_files": {
+    "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+    "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+    "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+    "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+    "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+    "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+    "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+    "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+    "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+  },
+  "entries": [
+    {
+      "id": "72af4b3535c13dec384b",
+      "operationId": "getSession",
+      "field": "/operation/responses/200/content/application~1json/schema/properties/user",
+      "reason": "Json.sessionJsonでは非nullのuserにusernameとroleが必ず存在します。nullableは維持し、非nullオブジェクトのrequiredに両方を指定してください。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "e25be7e4db12cc8970d4",
+      "operationId": "login",
+      "field": "/operation/description",
+      "reason": "ApiServer.handleLoginの順序はPOST→sameOrigin→parseJson→CSRF→認証です。JSON解析を省略しない。sameOriginはOrigin優先、無ければReferer、両方無い時のみ検査省略です。JSON APIのloginはparseJsonを先に呼ぶのでフォーム本文のcsrfTokenでログイン可能という説明は削除しX-CSRF-Tokenを案内してください。関連説明も整合させてください。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "022597da70eb7f1c896a",
+      "operationId": "createRequest",
+      "field": "/operation/security",
+      "reason": "セッションCookieとCSRFヘッダーは両方必要です。同一Security Requirement Object内にsessionCookieとcsrfHeaderを指定してください。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "1506dcc9133dfc7e0f92",
+      "operationId": "createRequest",
+      "field": "/operation/description",
+      "reason": "sameOriginはOrigin優先、無ければReferer、両方無い場合はtrue。欠落だけで403という記載を直してください。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "17625a7789770221e2be",
+      "operationId": "createRequest",
+      "field": "/operation/responses/201/headers",
+      "reason": "handleRequestsのPOST成功レスポンスはSet-Cookieを返しません。実際に設定しないSet-Cookieヘッダー定義を削除してください。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "8977905fdf115bd50ddd",
+      "operationId": "logout",
+      "field": "/operation/responses/200/content/application~1json/schema/properties/user",
+      "reason": "OpenAPI3.1ではnullable:trueではnullを許容しません。ログアウト後のuserは常にnullなので、このスキーマをtype:null（JSON文字列としてnull）に置換しnullableとobject用propertiesを削除してください。例user:nullと一致させる必要があります。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "5384ad24d45d59c31c17",
+      "operationId": "logout",
+      "field": "/operation/description",
+      "reason": "匿名時はanonymousContext(req)==nullなら403です。匿名Cookieが無い場合も失敗します。現説明はCookieが有るがCSRF不一致だけ拒否するように読めるため修正。sameOriginはOrigin優先、Referer代替、両方無い場合のみ省略です。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "1ddf89fdfd4ab15435f5",
+      "operationId": "listRequests",
+      "field": "/operation/description",
+      "reason": "Database.listRequestsはid DESCですがIDはランダムUUIDです。『新しい順』は誤りなので削除してください。またDBのセッション検索には期限判定が無く、Cookie Max-Ageはブラウザーの保持期間です。サーバーが期限切れを検出して401を返すという説明を削除し、Cookie欠落/不明なトークンの401と区別してください。レスポンス説明も同様。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "201d1b39efcaa1a3e073",
+      "operationId": "updateRequest",
+      "field": "/operation/description",
+      "reason": "Service.updateではrequireEmployeeの後、他社員の申請はcanView=falseでnotFound、404になります。APPROVERは403、他社員は404に修正し、レスポンス403/404の説明も整合させてください。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "6d1a30c47e99a26fd59f",
+      "operationId": "submitRequest",
+      "field": "/operation/security",
+      "reason": "sessionCookieとcsrfHeaderの両方必須。同一Security Requirement Objectに両者を指定。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "a76a6f8ae9e9a2ab6f63",
+      "operationId": "submitRequest",
+      "field": "/operation/description",
+      "reason": "サーバー側はセッショントークンの期限を判定しません。Cookie Max-Ageと区別し期限切れなら401という断定は削除。sameOriginはOrigin優先、Referer代替、両方無い場合のみ省略。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "ce220b089e4386ae4b6e",
+      "operationId": "returnRequest",
+      "field": "/operation/description",
+      "reason": "サーバーのセッション検索に期限判定はありません。期限切れを検出して401という断定を削除。sameOriginはOrigin優先、Referer代替、両方無い場合検査省略。処理順序はApiServerとService.returnのコードに合わせ、コメントの解析・検証やrequireApproverを飛ばした断定を避けてください。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "3225909a0feab7faee2e",
+      "operationId": "approveRequest",
+      "field": "/operation/security",
+      "reason": "セッションとCSRFの両方が必要。同一オブジェクトにsessionCookieとcsrfHeaderを指定してください。",
+      "origin": "provided_feedback",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    },
+    {
+      "id": "0a122a1eac528d921cb4",
+      "operationId": "listRequests",
+      "field": "/operation",
+      "reason": "JSON Pointerのapplication/jsonキーはapplication~1jsonと指定する。前回の未エスケープの差分は適用できなかった。",
+      "origin": "local_check",
+      "state": "open",
+      "occurrences": 1,
+      "last_round": 0,
+      "source_files": {
+        "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+        "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+        "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+        "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+        "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+      }
+    }
+  ],
+  "note": "Feedback is a review aid, not an authoritative API specification."
+}

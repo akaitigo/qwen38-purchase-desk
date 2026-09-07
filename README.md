@@ -3,6 +3,8 @@
 Kotlin/JVM + SQLite で構築した備品購入の申請・承認システム。
 JSON API と HTML 画面の両方を提供し、権限管理・CSRF 保護・状態遷移・二重承認防止・保存・復元を実装しています。
 
+[全10操作のAPIリファレンスと呼出し手順](docs/api/index.md)を追加しました。GitHub ActionsからRunpod上のQwen3.8-27B-FP8を呼んで生成し、ソースとの照合と追加補正を行った版です。[入力規模・費用・補正内容](docs/api/generation.md)と、[文書生成CIの設定方法](docs/api-document-generation.md)も公開しています。
+
 ## 要件
 
 - Java 17（OpenJDK 17）

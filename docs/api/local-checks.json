@@ -1,0 +1,431 @@
+{
+  "status": "passed",
+  "scope": [
+    "getSession",
+    "login",
+    "createRequest",
+    "logout",
+    "listRequests",
+    "getRequest",
+    "updateRequest",
+    "submitRequest",
+    "returnRequest",
+    "approveRequest"
+  ],
+  "checks": [
+    {
+      "case": "anonymous_session",
+      "operationId": "getSession",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "reuse_anonymous_session",
+      "operationId": "getSession",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "login_without_csrf",
+      "operationId": "login",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "login_invalid_json_before_csrf",
+      "operationId": "login",
+      "status": 400,
+      "response_schema_matched": true
+    },
+    {
+      "case": "login_origin_before_json",
+      "operationId": "login",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "login_wrong_password",
+      "operationId": "login",
+      "status": 401,
+      "response_schema_matched": true
+    },
+    {
+      "case": "login_wrong_password_and_csrf",
+      "operationId": "login",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "login_cross_origin",
+      "operationId": "login",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "create_unauthenticated_before_validation",
+      "operationId": "createRequest",
+      "status": 401,
+      "response_schema_matched": true
+    },
+    {
+      "case": "login_success",
+      "operationId": "login",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "authenticated_session",
+      "operationId": "getSession",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "create_without_csrf",
+      "operationId": "createRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "create_cross_origin",
+      "operationId": "createRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "create_missing_fields",
+      "operationId": "createRequest",
+      "status": 400,
+      "response_schema_matched": true
+    },
+    {
+      "case": "create_total_limit",
+      "operationId": "createRequest",
+      "status": 400,
+      "response_schema_matched": true
+    },
+    {
+      "case": "create_example",
+      "operationId": "createRequest",
+      "status": 201,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approver_session",
+      "operationId": "getSession",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approver_login",
+      "operationId": "login",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approver_cannot_create",
+      "operationId": "createRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "validation_before_role",
+      "operationId": "createRequest",
+      "status": 400,
+      "response_schema_matched": true
+    },
+    {
+      "case": "other_session",
+      "operationId": "getSession",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "other_login",
+      "operationId": "login",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "other_list_empty",
+      "operationId": "listRequests",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "employee_list",
+      "operationId": "listRequests",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approver_list",
+      "operationId": "listRequests",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "list_requires_login",
+      "operationId": "listRequests",
+      "status": 401,
+      "response_schema_matched": true
+    },
+    {
+      "case": "other_detail_hidden",
+      "operationId": "getRequest",
+      "status": 404,
+      "response_schema_matched": true
+    },
+    {
+      "case": "other_edit_hidden",
+      "operationId": "updateRequest",
+      "status": 404,
+      "response_schema_matched": true
+    },
+    {
+      "case": "other_submit_forbidden",
+      "operationId": "submitRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "getRequest_requires_login",
+      "operationId": "getRequest",
+      "status": 401,
+      "response_schema_matched": true
+    },
+    {
+      "case": "getRequest_missing",
+      "operationId": "getRequest",
+      "status": 404,
+      "response_schema_matched": true
+    },
+    {
+      "case": "updateRequest_requires_login",
+      "operationId": "updateRequest",
+      "status": 401,
+      "response_schema_matched": true
+    },
+    {
+      "case": "updateRequest_missing",
+      "operationId": "updateRequest",
+      "status": 404,
+      "response_schema_matched": true
+    },
+    {
+      "case": "updateRequest_missing_csrf",
+      "operationId": "updateRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "submitRequest_requires_login",
+      "operationId": "submitRequest",
+      "status": 401,
+      "response_schema_matched": true
+    },
+    {
+      "case": "submitRequest_missing",
+      "operationId": "submitRequest",
+      "status": 404,
+      "response_schema_matched": true
+    },
+    {
+      "case": "submitRequest_missing_csrf",
+      "operationId": "submitRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "returnRequest_requires_login",
+      "operationId": "returnRequest",
+      "status": 401,
+      "response_schema_matched": true
+    },
+    {
+      "case": "returnRequest_missing",
+      "operationId": "returnRequest",
+      "status": 404,
+      "response_schema_matched": true
+    },
+    {
+      "case": "returnRequest_missing_csrf",
+      "operationId": "returnRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approveRequest_requires_login",
+      "operationId": "approveRequest",
+      "status": 401,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approveRequest_missing",
+      "operationId": "approveRequest",
+      "status": 404,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approveRequest_missing_csrf",
+      "operationId": "approveRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "employee_cannot_approve",
+      "operationId": "approveRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "employee_cannot_return",
+      "operationId": "returnRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approver_cannot_edit",
+      "operationId": "updateRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approver_cannot_submit",
+      "operationId": "submitRequest",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "cannot_approve_draft",
+      "operationId": "approveRequest",
+      "status": 409,
+      "response_schema_matched": true
+    },
+    {
+      "case": "cannot_return_draft",
+      "operationId": "returnRequest",
+      "status": 409,
+      "response_schema_matched": true
+    },
+    {
+      "case": "patch_is_not_partial_update",
+      "operationId": "updateRequest",
+      "status": 400,
+      "response_schema_matched": true
+    },
+    {
+      "case": "submit",
+      "operationId": "submitRequest",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "duplicate_submit",
+      "operationId": "submitRequest",
+      "status": 409,
+      "response_schema_matched": true
+    },
+    {
+      "case": "edit_submitted",
+      "operationId": "updateRequest",
+      "status": 409,
+      "response_schema_matched": true
+    },
+    {
+      "case": "return_empty_comment",
+      "operationId": "returnRequest",
+      "status": 400,
+      "response_schema_matched": true
+    },
+    {
+      "case": "return",
+      "operationId": "returnRequest",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "edit_returned",
+      "operationId": "updateRequest",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "resubmit",
+      "operationId": "submitRequest",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "approve",
+      "operationId": "approveRequest",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "duplicate_approval",
+      "operationId": "approveRequest",
+      "status": 409,
+      "response_schema_matched": true
+    },
+    {
+      "case": "edit_approved",
+      "operationId": "updateRequest",
+      "status": 409,
+      "response_schema_matched": true
+    },
+    {
+      "case": "resubmit_approved",
+      "operationId": "submitRequest",
+      "status": 409,
+      "response_schema_matched": true
+    },
+    {
+      "case": "return_approved",
+      "operationId": "returnRequest",
+      "status": 409,
+      "response_schema_matched": true
+    },
+    {
+      "case": "rejections_preserve_history",
+      "operationId": "getRequest",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "logout_without_csrf",
+      "operationId": "logout",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "logout_cross_origin",
+      "operationId": "logout",
+      "status": 403,
+      "response_schema_matched": true
+    },
+    {
+      "case": "logout",
+      "operationId": "logout",
+      "status": 200,
+      "response_schema_matched": true
+    },
+    {
+      "case": "logout_invalidates_server_token",
+      "operationId": "listRequests",
+      "status": 401,
+      "response_schema_matched": true
+    },
+    {
+      "case": "anonymous_logout",
+      "operationId": "logout",
+      "status": 200,
+      "response_schema_matched": true
+    }
+  ],
+  "human_review_required": true,
+  "publication_authorized": false,
+  "limitations": [
+    "文言・説明の意味、全入力境界、フォーム、期限、TLSは未検証。",
+    "合成データでの合格はモデルによる生成成功を示さない。"
+  ]
+}
