@@ -114,6 +114,8 @@ def make_payload(entries, topics=None, repair=None, thinking=False):
         'response_format': {'type': 'json_schema', 'json_schema': {
             'name': 'source_document', 'schema': document_schema(entries, topics)}}}},
         'policy': {'executionTimeout': 300000, 'ttl': 1200000}}
+    if thinking:
+        payload['input']['openai_input']['reasoning_effort'] = 'low'
     if repair is not None:
         expected = [{'path':e['path'], 'sha256':hashlib.sha256(e['text'].encode()).hexdigest()} for e in entries]
         if not isinstance(repair, dict) or set(repair) != {'sources', 'claims', 'findings'}:
@@ -286,6 +288,8 @@ def main():
         repair = json.loads(repair_bytes) if repair_bytes is not None else None
         payload = make_payload(entries, topics, repair, thinking=args.thinking)
         record['requested_thinking'] = args.thinking
+        if args.thinking:
+            record['requested_reasoning_effort'] = 'low'
         if repair_bytes is not None:
             record['repair_review_sha256'] = hashlib.sha256(repair_bytes).hexdigest()
             record['repair_mode'] = 'review_guided_pending_recheck'

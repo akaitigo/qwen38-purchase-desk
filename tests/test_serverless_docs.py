@@ -18,6 +18,8 @@ class Jobs(unittest.TestCase):
         thinking = module.make_payload(entries, thinking=True)['input']['openai_input']
         self.assertFalse(default['chat_template_kwargs']['enable_thinking'])
         self.assertTrue(thinking['chat_template_kwargs']['enable_thinking'])
+        self.assertEqual(thinking['reasoning_effort'], 'low')
+        self.assertNotIn('reasoning_effort', default)
         self.assertEqual(thinking['max_tokens'], default['max_tokens'])
 
     def test_repair_is_bound_to_sources_and_selected_claims(self):
