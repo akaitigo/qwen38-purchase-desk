@@ -74,7 +74,7 @@ def document_schema(entries, topics):
             'statement':{'type':'string','minLength':1},
             'conditions':{'type':'string','minLength':1},
             'exceptions':{'type':'string','minLength':1},
-            'evidence':{'type':'array','maxItems':4,'uniqueItems':True,
+            'evidence':{'type':'array','maxItems':4,
                         'items':{'type':'string','enum':list(evidence_catalog(entries))}}}}
     return {'type':'object','additionalProperties':False,
         'required':['claims','unknowns'],'properties':{
@@ -95,6 +95,9 @@ def make_payload(entries, topics=None):
         '引用・パス・行番号は生成せず、根拠IDを最大4個選んでください。原文は後からそのまま添えます。'
         '根拠が分割されている場合は前後の候補も読み、必要なものを選んでください。'
         'conditionsとexceptionsを省略せず、未認証・ヘッダー欠落・早期returnを確認してください。'
+        'sameOriginはOrigin/Refererの両方欠落、および期待オリジン未設定でHost欠落の場合も明記してください。'
+        'csrfProvidedなど共通ヘルパーの受付方法はAPIとHTMLの双方で確認し、フォームだけと狭めないでください。'
+        'unknownsは選択トピックの理解に必要なものだけとし、なければ空配列にしてください。'
         'コードから読める挙動をunknownsへ逃がさず、未確認なら足りない情報を明記してください。'
         'APIとHTMLは別々に関数を読み、片方の処理を他方へ一般化しないでください。'
         '認証・権限・状態・失敗時の条件を確認し、ヘッダーがない場合も区別してください。'
