@@ -55,7 +55,7 @@ jobs:
     needs: offline
     if: vars.RUNPOD_API_DOCS_ENABLED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -73,12 +73,13 @@ jobs:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           DOCS_SCOPE: ${{ vars.RUNPOD_API_DOCS_SCOPE || 'auth-create' }}
           DOCS_MAX_JOBS: ${{ vars.RUNPOD_API_DOCS_MAX_JOBS || '8' }}
+          DOCS_TOTAL_SECONDS: ${{ vars.RUNPOD_API_DOCS_TOTAL_SECONDS || '720' }}
         run: |
           export JAVA_HOME="$JAVA_HOME_17_X64"
           export PATH="$JAVA_HOME/bin:$PATH"
           .venv-docs/bin/python scripts/api_docs_pipeline.py --live \
             --scope "$DOCS_SCOPE" --max-jobs "$DOCS_MAX_JOBS" \
-            --max-repairs 1 --total-seconds 720 --out generated/api-docs-live
+            --max-repairs 1 --total-seconds "$DOCS_TOTAL_SECONDS" --out generated/api-docs-live
       - name: Preserve candidate documents and verification evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
