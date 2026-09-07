@@ -9,7 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from api_docs import OPERATIONS, SMALL_SCOPE, evidence_catalog, sources
-from api_docs_pipeline import measurement_summary, parse_review, response_measurement, run_pipeline
+from api_docs_pipeline import apply_document_patch, load_resume, measurement_summary, parse_review, response_measurement, run_pipeline
 from api_docs_fixture import documents
 from check_api_docs import run_checks
 
@@ -72,6 +72,81 @@ class ApiPipelineTest(unittest.TestCase):
                          {'reported_sum': 120, 'reported_jobs': 1, 'complete': False})
         self.assertEqual(summary['by_stage']['repair']['completion_tokens']['reported_sum'], 25)
         self.assertIsNone(summary['billed_usd'])
+
+    def test_resume_skips_generation_and_rechecks_against_app(self):
+        model = ScriptedModel(self.docs)
+        previous = Path(self.temp.name) / 'previous'
+        def recorded(payload, record, seconds):
+            result = model(payload, record, seconds)
+            result['id'] = record['job_id'] = 'recorded-test-' + str(len(model.calls))
+            return result
+        run_pipeline(self.entries, SMALL_SCOPE, previous, recorded,
+                     lambda spec: run_checks(spec, ROOT), execution_mode='live')
+        # These local mocks test receipt validation, not real GPU generation.
+        initial, receipt = load_resume(previous, self.entries, SMALL_SCOPE)
+        resumed = self.run_case(ScriptedModel(self.docs), initial_documents=initial, resume_receipt=receipt)
+        self.assertEqual(resumed['status'], 'automated_checks_clear_human_pending')
+        self.assertEqual(resumed['jobs_started'], 3)
+        self.assertEqual(resumed['measurement']['by_stage']['generate']['jobs_attempted'], 0)
+        chained_folder = Path(self.temp.name) / 'chained'
+        run_pipeline(self.entries, SMALL_SCOPE, chained_folder, recorded,
+                     lambda spec: run_checks(spec, ROOT), execution_mode='live',
+                     initial_documents=initial, resume_receipt=receipt)
+        again, _ = load_resume(chained_folder, self.entries, SMALL_SCOPE)
+        self.assertEqual(again, initial)
+        altered = json.loads((previous / 'documents.json').read_text())
+        altered[0]['operation']['description'] = 'Altered after generation'
+        (previous / 'documents.json').write_text(json.dumps(altered))
+        with self.assertRaisesRegex(ValueError, 'differs'):
+            load_resume(previous, self.entries, SMALL_SCOPE)
+
+    def test_resume_rejects_synthetic_and_changed_sources(self):
+        self.run_case(ScriptedModel(self.docs))
+        folder = Path(self.temp.name) / 'pipeline'
+        with self.assertRaisesRegex(ValueError, 'live results'):
+            load_resume(folder, self.entries, SMALL_SCOPE)
+        previous = json.loads((folder / 'summary.json').read_text())
+        previous.update(execution_mode='live', sources={})
+        (folder / 'summary.json').write_text(json.dumps(previous))
+        with self.assertRaisesRegex(ValueError, 'current source'):
+            load_resume(folder, self.entries, SMALL_SCOPE)
+
+    def test_source_grounded_feedback_causes_targeted_repair(self):
+        model = ScriptedModel(self.docs)
+        result = self.run_case(model, initial_documents=[d for d in self.docs if d['operationId'] in SMALL_SCOPE],
+            initial_findings={'login': [{'field': '/operation/description', 'reason': 'Synthetic review finding'}]})
+        self.assertEqual(result['status'], 'automated_checks_clear_human_pending')
+        self.assertFalse(any(stage == 'generate' for stage, op in model.calls))
+        self.assertEqual(model.calls[0], ('repair', 'login'))
+
+    def test_patch_repairs_authentication_and_runs_real_http_checks(self):
+        initial = deepcopy([d for d in self.docs if d['operationId'] in SMALL_SCOPE])
+        create = next(d for d in initial if d['operationId'] == 'createRequest')
+        create['operation']['security'] = [{'sessionCookie': []}]
+        model = ScriptedModel(self.docs)
+        def invoke(payload, record, seconds):
+            if record['stage'] == 'repair':
+                self.assertEqual(record['response_format'], 'api_patch')
+                return wrapped({'operationId': 'createRequest', 'edits': [{
+                    'op': 'set', 'path': '/operation/security',
+                    'value': [{'sessionCookie': [], 'csrfHeader': []}]}]})
+            return model(payload, record, seconds)
+        result = self.run_case(invoke, initial_documents=initial, repair_format='patch')
+        self.assertEqual(result['status'], 'automated_checks_clear_human_pending')
+        self.assertEqual(result['jobs_started'], 4)
+        self.assertEqual(create['operation']['security'], [{'sessionCookie': []}])
+
+    def test_patch_pointer_scope_and_removal(self):
+        doc = deepcopy(self.docs[0])
+        doc['operation']['responses']['200']['content']['application/json']['schema']['nullable'] = True
+        patch = {'operationId': doc['operationId'], 'edits': [{
+            'op': 'remove', 'path': '/operation/responses/200/content/application~1json/schema/nullable'}]}
+        fixed = apply_document_patch(doc, patch)
+        self.assertNotIn('nullable', fixed['operation']['responses']['200']['content']['application/json']['schema'])
+        for path in ('/evidence', '/operationId', '/operation/description~x'):
+            with self.assertRaises(ValueError):
+                apply_document_patch(doc, {'operationId': doc['operationId'], 'edits': [
+                    {'op': 'set', 'path': path, 'value': 'not allowed'}]})
 
     def test_actual_http_mismatch_repairs_and_rechecks(self):
         model = ScriptedModel(self.docs, wrong_status=True)

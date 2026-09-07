@@ -17,6 +17,7 @@ on:
       - '.github/workflows/api-docs.yml'
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: api-docs
   cancel-in-progress: false
@@ -67,6 +68,23 @@ jobs:
           export JAVA_HOME="$JAVA_HOME_17_X64"
           export PATH="$JAVA_HOME/bin:$PATH"
           ./dev build
+      - name: Restore a previous live candidate when explicitly selected
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DOCS_RESUME_RUN: ${{ vars.RUNPOD_API_DOCS_RESUME_RUN }}
+        run: |
+          if [[ -n "$DOCS_RESUME_RUN" ]]; then
+            [[ "$DOCS_RESUME_RUN" =~ ^[0-9]+$ ]]
+            mkdir -p generated
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$DOCS_RESUME_RUN" \
+              --jq '{id,head_sha,status,path,run_attempt,html_url}' > generated/resume-origin.json
+            jq -e '.status == "completed" and .path == ".github/workflows/api-docs.yml"' generated/resume-origin.json
+            run_sha=$(jq -r .head_sha generated/resume-origin.json)
+            run_attempt=$(jq -r .run_attempt generated/resume-origin.json)
+            gh run download "$DOCS_RESUME_RUN" --repo "$GITHUB_REPOSITORY" \
+              --name "api-docs-live-$run_sha-$run_attempt" --dir generated/api-docs-resume
+            mv generated/resume-origin.json generated/api-docs-resume/ci-origin.json
+          fi
       - name: Generate, check, review, repair and recheck API documentation
         env:
           RUNPOD_ENDPOINT_ID: ${{ vars.RUNPOD_ENDPOINT_ID }}
@@ -74,12 +92,24 @@ jobs:
           DOCS_SCOPE: ${{ vars.RUNPOD_API_DOCS_SCOPE || 'auth-create' }}
           DOCS_MAX_JOBS: ${{ vars.RUNPOD_API_DOCS_MAX_JOBS || '8' }}
           DOCS_TOTAL_SECONDS: ${{ vars.RUNPOD_API_DOCS_TOTAL_SECONDS || '720' }}
+          DOCS_MAX_REPAIRS: ${{ vars.RUNPOD_API_DOCS_MAX_REPAIRS || '1' }}
+          DOCS_REPAIR_FORMAT: ${{ vars.RUNPOD_API_DOCS_REPAIR_FORMAT || 'document' }}
+          DOCS_RESUME_RUN: ${{ vars.RUNPOD_API_DOCS_RESUME_RUN }}
         run: |
           export JAVA_HOME="$JAVA_HOME_17_X64"
           export PATH="$JAVA_HOME/bin:$PATH"
+          extra_args=()
+          if [[ -n "$DOCS_RESUME_RUN" ]]; then
+            extra_args+=(--resume-from generated/api-docs-resume)
+          fi
+          if [[ -f config/api-docs-feedback.json ]]; then
+            extra_args+=(--findings config/api-docs-feedback.json)
+          fi
           .venv-docs/bin/python scripts/api_docs_pipeline.py --live \
             --scope "$DOCS_SCOPE" --max-jobs "$DOCS_MAX_JOBS" \
-            --max-repairs 1 --total-seconds "$DOCS_TOTAL_SECONDS" --out generated/api-docs-live
+            --max-repairs "$DOCS_MAX_REPAIRS" --total-seconds "$DOCS_TOTAL_SECONDS" \
+            --repair-format "$DOCS_REPAIR_FORMAT" \
+            "${extra_args[@]}" --out generated/api-docs-live
       - name: Preserve candidate documents and verification evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
