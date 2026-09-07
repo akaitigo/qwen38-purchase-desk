@@ -37,7 +37,9 @@ def review_payload(entries, document):
         'required': ['reviews', 'unknowns_verdict', 'unknowns_reason'], 'properties': {
             'reviews': {'type': 'array', 'minItems': len(topics), 'maxItems': len(topics), 'items': row},
             'unknowns_verdict': verdict, 'unknowns_reason': {'type': 'string', 'minLength': 1}}}
-    p = make_payload(entries, topics, thinking=True)
+    # A live 11-topic review spent its entire 4096-token budget on reasoning.
+    # Produce the bounded assessment directly; correctness still needs inspection.
+    p = make_payload(entries, topics, thinking=False)
     request = p['input']['openai_input']
     request['response_format']['json_schema'] = {'name': 'source_review', 'schema': schema}
     request['messages'] = [
@@ -164,7 +166,9 @@ def run_pipeline(entries, topics, out, invoke, *, max_repairs=1, max_jobs=4,
                 'claims': [c for c in current['claims'] if c['topic'] in repair_topics],
                 'findings': {r['topic']: r['reason'] for r in revise}}
             save_json(out / f'repair-input-{summary["repairs_completed"] + 1}.json', repair)
-            result = call('repair', make_payload(entries, repair_topics, repair, thinking=True))
+            payload = make_payload(entries, repair_topics, repair, thinking=True)
+            payload['input']['openai_input']['max_tokens'] = 6144
+            result = call('repair', payload)
             revised, _ = extract_document(result, entries, repair_topics)
             replacement = {c['topic']: c for c in revised['claims']}
             # Other claims are kept verbatim; re-review the complete assembled document.

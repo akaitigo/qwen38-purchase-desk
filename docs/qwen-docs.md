@@ -76,7 +76,7 @@ python3 tests/test_docs_pipeline.py --smoke-out generated/docs-pipeline-offline
 
 これは構文解析ではなく行単位の分割です。関数の途中で切れることがあり、引用が存在しても説明を裏付けるとは限りません。現在のCIは4ファイル全体を入力に使い、コード範囲の自動絞り込みは実装していません。重複する行もあるため、入力トークン削減の仕組みではありません。
 
-レビュー・修正では思考モードと `reasoning_effort=low` を使います。思考も出力上限4096トークンに含まれ、途中で切れた結果は採用しません。通常の生成は思考モードを無効にしています。
+初回生成とレビューは思考モードを無効にし、出力上限を4096トークンにしています。修正では思考モードと `reasoning_effort=low` を使い、思考を含む出力上限を6144トークンにしています。途中で切れた結果は採用しません。
 
 ## 個別の再検査・修正
 
@@ -94,5 +94,7 @@ python3 scripts/serverless_docs.py --repo . --files config/docs-source-files.txt
 2026-09-07、単発生成を行う旧CIはRunpod呼出しから11項目のArtifacts保存まで成功しました。[実行記録](https://github.com/akaitigo/qwen38-purchase-desk/actions/runs/34085940336/attempts/2)。ただし生成文書にはAPIとHTMLの混同などがありました。
 
 続く手動レビューを伴う8回の試行では、入力範囲を絞る、思考量を変える、正しい項目を保持するといった方法で主要な誤りを修正できました。今回追加した自動レビュー・修正パイプラインのFP8での品質は、その結果とは分けて評価する必要があります。合成応答のテストを、モデルによる自動修正の成功実績には数えません。
+
+最初の自動ループ実測では、初回生成は完了しましたが、レビューが4096トークンをすべて思考に使い、評価本文を返さず停止しました。CIは失敗として元の草稿と応答を保存しました。[実行記録](https://github.com/akaitigo/qwen38-purchase-desk/actions/runs/34091190387/attempts/2)。この結果を受けてレビューの思考モードを無効化し、修正側の出力枠を拡大しています。この調整だけで文書の正確性が改善したとは判断できません。
 
 参考: [RunpodのジョブAPI](https://docs.runpod.io/serverless/endpoints/send-requests)、[vLLMの構造化出力](https://docs.vllm.ai/en/stable/features/structured_outputs/)。
