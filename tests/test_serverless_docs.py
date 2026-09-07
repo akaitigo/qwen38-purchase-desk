@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -11,6 +12,20 @@ spec.loader.exec_module(module)
 
 
 class Jobs(unittest.TestCase):
+    def test_repair_is_bound_to_sources_and_selected_claims(self):
+        entries, doc = self.fixture()
+        topic = module.TOPICS[0]
+        review = {'sources':[{'path':e['path'], 'sha256':hashlib.sha256(e['text'].encode()).hexdigest()} for e in entries],
+                  'claims':doc['claims'][:1], 'findings':{topic:'条件を再確認'}}
+        p = module.make_payload(entries, [topic], review)
+        self.assertIn('条件を再確認', p['input']['openai_input']['messages'][-1]['content'])
+        changed = [dict(entries[0], text=entries[0]['text']+' changed')]
+        with self.assertRaisesRegex(ValueError, 'snapshot'):
+            module.make_payload(changed, [topic], review)
+        review['findings'] = {module.TOPICS[1]:'別項目'}
+        with self.assertRaisesRegex(ValueError, 'finding'):
+            module.make_payload(entries, [topic], review)
+
     def test_cold_queue_then_completion_submits_once(self):
         calls, statuses, now = [], ['IN_QUEUE', 'IN_PROGRESS', 'COMPLETED'], [0]
         def api(method, route, body=None):
