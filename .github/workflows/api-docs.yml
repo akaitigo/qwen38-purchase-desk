@@ -7,12 +7,14 @@ on:
       - 'src/main/**'
       - 'config/api-docs-*'
       - 'scripts/api_docs.py'
+      - 'scripts/api_docs_context.py'
       - 'scripts/check_api_docs.py'
       - 'scripts/api_docs_pipeline.py'
       - 'scripts/api_docs_tokens.py'
       - 'scripts/serverless_docs.py'
       - 'tests/api_docs_fixture.py'
       - 'tests/test_api_docs.py'
+      - 'tests/test_api_docs_context.py'
       - 'tests/test_api_docs_pipeline.py'
       - '.github/workflows/api-docs.yml'
 permissions:
@@ -85,6 +87,38 @@ jobs:
               --name "api-docs-live-$run_sha-$run_attempt" --dir generated/api-docs-resume
             mv generated/resume-origin.json generated/api-docs-resume/ci-origin.json
           fi
+      - name: Restore source-aware feedback from an earlier live run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DOCS_FEEDBACK_RUN: ${{ vars.RUNPOD_API_DOCS_FEEDBACK_RUN || 'latest' }}
+        run: |
+          if [[ "$DOCS_FEEDBACK_RUN" == 'none' ]]; then exit 0; fi
+          if [[ "$DOCS_FEEDBACK_RUN" == 'latest' ]]; then
+            run_ids=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/api-docs.yml/runs" \
+              -f branch="$GITHUB_REF_NAME" -f status=completed -f per_page=10 \
+              --jq '.workflow_runs[].id')
+          else
+            [[ "$DOCS_FEEDBACK_RUN" =~ ^[0-9]+$ ]]
+            run_ids="$DOCS_FEEDBACK_RUN"
+          fi
+          for run_id in $run_ids; do
+            [[ "$run_id" != "$GITHUB_RUN_ID" ]] || continue
+            origin=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" \
+              --jq '{id,status,path,head_branch,repository:.head_repository.full_name,html_url}')
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg branch "$GITHUB_REF_NAME" \
+              '.status == "completed" and .path == ".github/workflows/api-docs.yml" and .repository == $repo and .head_branch == $branch' <<< "$origin" >/dev/null
+            artifact=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" \
+              --jq '[.artifacts[] | select(.expired == false and (.name | startswith("api-docs-live-")))] | sort_by(.id) | last | .name // empty')
+            [[ -n "$artifact" ]] || continue
+            gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name "$artifact" --dir "generated/feedback-$run_id"
+            if [[ -f "generated/feedback-$run_id/feedback-memory.json" ]]; then
+              mkdir -p generated/api-docs-feedback
+              cp "generated/feedback-$run_id/feedback-memory.json" generated/api-docs-feedback/feedback-memory.json
+              printf '%s\n' "$origin" > generated/api-docs-feedback/ci-origin.json
+              echo "Using feedback from CI run $run_id"
+              break
+            fi
+          done
       - name: Generate, check, review, repair and recheck API documentation
         env:
           RUNPOD_ENDPOINT_ID: ${{ vars.RUNPOD_ENDPOINT_ID }}
@@ -102,9 +136,10 @@ jobs:
           if [[ -n "$DOCS_RESUME_RUN" ]]; then
             extra_args+=(--resume-from generated/api-docs-resume)
           fi
-          if [[ -f config/api-docs-feedback.json ]]; then
-            extra_args+=(--findings config/api-docs-feedback.json)
+          if [[ -f generated/api-docs-feedback/feedback-memory.json ]]; then
+            extra_args+=(--feedback-memory generated/api-docs-feedback/feedback-memory.json)
           fi
+          trap 'if [[ -d generated/api-docs-live && -f generated/api-docs-feedback/ci-origin.json ]]; then cp generated/api-docs-feedback/ci-origin.json generated/api-docs-live/feedback-ci-origin.json; fi' EXIT
           .venv-docs/bin/python scripts/api_docs_pipeline.py --live \
             --scope "$DOCS_SCOPE" --max-jobs "$DOCS_MAX_JOBS" \
             --max-repairs "$DOCS_MAX_REPAIRS" --total-seconds "$DOCS_TOTAL_SECONDS" \

@@ -1,0 +1,166 @@
+{
+  "date": "2026-09-07",
+  "source_files": {
+    "src/main/kotlin/com/example/purchasedesk/Main.kt": "97a793c2e0e302c7d584e07794cf6ad1d2940899861fb3699f3672b48b5e3f1b",
+    "src/main/kotlin/com/example/purchasedesk/domain/Domain.kt": "586e0871b4f441f22c814a66315d004c72f0b77fabbaff2676dc8bce31ae0aac",
+    "src/main/kotlin/com/example/purchasedesk/domain/Hashing.kt": "aae0f57daf194364f005387b85ca6cbec9fb3737484d4a53f0a4dd6fb21547a6",
+    "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt": "5b8eb674d014753cebef9843181095c7aaf7c61b109832425ae0c7e7530c3f14",
+    "src/main/kotlin/com/example/purchasedesk/service/Service.kt": "692a3ce95b95787844674fdd2d6fc2837a65a2e53193ca3fa8585cad50eb8f6e",
+    "src/main/kotlin/com/example/purchasedesk/data/Database.kt": "833263038570f25d06b934f8fb34ad514ddbc4339200652b12c293be6b981efe",
+    "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt": "8b4774984bafe9b257cf773b10075ab1969b1585a0c9f5548dead5a70af5fb61",
+    "src/main/kotlin/com/example/purchasedesk/http/Http.kt": "206efa3bd0a1c4c10d2b72e3a7232f67dfec27949f4aca406f018e6903e44091",
+    "src/main/kotlin/com/example/purchasedesk/http/Json.kt": "4e11b4e14990ca550560c3165a2f9691bd68ea6865116cd1aa521c87fdb4c720"
+  },
+  "origin_receipt": {
+    "summary_sha256": "1c2155d1b4e62de4cfe0d616fa78ca601cb2cf2b980f4887ac4b511437133885",
+    "documents_sha256": "4e34a10b73c99134e675ac5068cb2dfd1082a3b8d86a158a17c1af474156ac09",
+    "reused_operations": [
+      "getSession",
+      "login",
+      "createRequest",
+      "logout",
+      "listRequests",
+      "getRequest",
+      "updateRequest",
+      "submitRequest",
+      "returnRequest",
+      "approveRequest"
+    ],
+    "previous_status": "failed_needs_review",
+    "previous_jobs_started": 5,
+    "cost_scope": "Current measurements exclude earlier runs; combine the linked runs for total cost."
+  },
+  "ci_runs": [
+    34103143560,
+    34107089042,
+    34108499286
+  ],
+  "qwen_only_automated_completion": false,
+  "model_review_completed": false,
+  "post_generation_review": "assistant_source_and_execution_review",
+  "human_review_performed": false,
+  "publication_scope": "Documentation added to the review branch under existing user authorization; no main merge.",
+  "post_generation_changes": [
+    {
+      "operationId": "listRequests",
+      "field": "/operation/responses/200/content/application~1json/schema/properties/requests/description",
+      "reason": "Qwenが返した差分のapplication/jsonキーをJSON Pointerの形式に補正して適用。修正文の内容はQwenの応答を使用。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt"
+      ],
+      "model_response_job": "8abcd077-0b62-4563-b668-b2d7075af729-u2"
+    },
+    {
+      "operationId": "login",
+      "field": "/operation/description",
+      "reason": "両方欠落時だけ検査を省略する条件に訂正。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt"
+      ],
+      "replacement": "ユーザー名とパスワードを認証し、成功すると新しいセッションCookie（pd_session）とCSRFトークンを返します。\n\n【認証・役割】\n- 認証はCookieベースです。ログイン前（匿名）またはログイン中（認証済み）のいずれの場合でも、CSRFトークンが必要です。\n- 匿名の場合：Cookie「pd_anon」と、そのセッションに紐づくCSRFトークンをヘッダー「X-CSRF-Token」で送信する必要があります。\n- 認証済みの場合：Cookie「pd_session」と、そのセッションに紐づくCSRFトークンをヘッダー「X-CSRF-Token」で送信する必要があります。\n\n【検査順序】\n1. メソッドがPOSTであることを確認。\n2. Origin/RefererヘッダーによるSame-Originチェック。\n3. JSON本文の解析。\n4. CSRFトークンの検証（セッションの有無に応じて匿名セッションまたは認証済みセッションのトークンと照合）。\n5. ユーザー名とパスワードの照合。\n\n【Origin/Referer欠落時】\n- Originを優先し、Originがない場合はRefererを確認します。両方のヘッダーがない場合に限り、Same-Originチェックを省略します。\n\n【エラーの原因と対処】\n- 401: ユーザー名またはパスワードが不正です。\n- 403: CSRFトークンが不正、またはOriginが一致しません。\n- 405: メソッドがPOSTではありません。\n- 400: JSONの形式が正しくありません。\n- 500: サーバー内部エラー。\n\n【Cookie】\n- 成功時、`pd_session` Cookieが設定されます（Max-Age=86400、HttpOnly、SameSite=Lax、Secureは設定に応じて付与）。\n- 匿名セッションからログインした場合、`pd_anon` Cookieはクリアされます（Max-Age=0）。\n\n【補足】\n- CSRFトークンはヘッダー「X-CSRF-Token」で送信してください。"
+    },
+    {
+      "operationId": "updateRequest",
+      "field": "/operation/description",
+      "reason": "他社員による編集の404とOrigin判定の条件を訂正。入力検証とロール確認の順序も明記。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt"
+      ],
+      "replacement": "DRAFTまたはRETURNED状態の購入申請の品名、数量、単価、購入理由を更新します。更新は申請の所有者（ownerUsername）がEMPLOYEEロールでログインしている場合のみ許可されます。APPROVERロールによる更新は403、別の社員が所有する申請への更新は404になります。SUBMITTEDまたはAPPROVED状態の申請は更新不可で409エラーになります。\n\n認証はpd_session Cookieによるセッション認証が必要です。変更操作のため、X-CSRF-Tokenヘッダーにセッションに紐づくCSRFトークンを送信する必要があります。また、OriginまたはRefererヘッダーがリクエストのHostヘッダー（または設定されたpublicOrigin）と一致するsame-originチェックが行われます。Originを優先し、Originがない場合はRefererを確認します。両方がない場合はsame-originチェックを省略しますが、CSRFトークンの検証は行われます。\n\nリクエストボディはJSON形式で、itemName、quantity、unitPriceYen、reasonの4フィールドが必須です。idフィールドを指定した場合は、パスの{id}と一致する必要があります。不一致の場合は400エラーになります。totalYenはサーバー側でquantity × unitPriceYenとして自動計算され、100,000,000円を超える場合は400エラーになります。\n\n成功時は更新後の申請情報がJSONで返されます。\n\n認証、同一オリジン、CSRF、本文の解析と入力値、EMPLOYEEロールの順に検査し、その後に申請の存在・閲覧権限と状態を確認します。権限や状態のエラーより先に入力不正の400を返す場合があります。"
+    },
+    {
+      "operationId": "updateRequest",
+      "field": "/operation/responses/401/description",
+      "reason": "サーバー側で期限切れを判定するという説明を削除。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt"
+      ],
+      "replacement": "認証が必要です。pd_session Cookieがない、またはセッショントークンが無効です。"
+    },
+    {
+      "operationId": "updateRequest",
+      "field": "/operation/responses/403/description",
+      "reason": "他社員の申請への編集は403ではなく404。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt"
+      ],
+      "replacement": "CSRFトークン不一致、Originの検査失敗、またはEMPLOYEE以外のロールによる操作です。"
+    },
+    {
+      "operationId": "updateRequest",
+      "field": "/operation/responses/404/description",
+      "reason": "実装の閲覧制御を反映。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt"
+      ],
+      "replacement": "申請が存在しない、または別の社員が所有する申請です。"
+    },
+    {
+      "operationId": "submitRequest",
+      "field": "/operation/security",
+      "reason": "CookieとCSRFヘッダーのAND条件を補正。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt"
+      ],
+      "replacement": [
+        {
+          "sessionCookie": [],
+          "csrfHeader": []
+        }
+      ]
+    },
+    {
+      "operationId": "approveRequest",
+      "field": "/operation/security",
+      "reason": "CookieとCSRFヘッダーのAND条件を補正。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt"
+      ],
+      "replacement": [
+        {
+          "sessionCookie": [],
+          "csrfHeader": []
+        }
+      ]
+    },
+    {
+      "operationId": "submitRequest",
+      "field": "/operation/description",
+      "reason": "セッション期限とOrigin判定を実装に合わせる。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt"
+      ],
+      "replacement": "下書き（DRAFT）または差し戻し済み（RETURNED）の申請を提出済み（SUBMITTED）に変更します。\n\n【認証と認可】\n- 認証: 有効なセッションCookie（pd_session）が必要です。Cookieがない、またはセッショントークンが無効な場合、401エラーが返されます。\n- 認可: 申請の所有者（ownerUsername）である社員（EMPLOYEE）のみが実行可能です。承認者（APPROVER）や他の社員の申請に対して実行しようとすると、403エラーが返されます。\n\n【CSRF保護】\n- 変更操作のため、CSRFトークンの検証が行われます。\n- ヘッダー `X-CSRF-Token` に、現在のセッションに紐付けられたCSRFトークンを指定する必要があります。\n- トークンが不正または欠落の場合、403エラーが返されます。\n\n【Origin/Refererチェック】\n- 変更操作のため、OriginまたはRefererヘッダーによる同一オリジンチェックが行われます。\n- Originを優先し、Originがない場合はRefererを確認します。両方がない場合に限りチェックを省略します。\n- ヘッダーが存在する場合、リクエストのオリジンがサーバーの期待するオリジン（デフォルトはHostヘッダー由来、または設定されたpublicOrigin）と一致する必要があります。一致しない場合、403エラーが返されます。\n\n【状態遷移】\n- 申請の状態が DRAFT または RETURNED の場合のみ成功します。\n- 申請の状態が SUBMITTED または APPROVED の場合、409エラーが返されます。\n\n【エラー処理】\n- 401: 認証エラー（セッション無効）\n- 403: 認可エラー（所有者でない、またはCSRF/Originチェック失敗）\n- 404: 申請が見つからない\n- 409: 状態遷移の競合（現在の状態では提出できない）\n- 500: サーバー内部エラー"
+    },
+    {
+      "operationId": "returnRequest",
+      "field": "/operation/description",
+      "reason": "期限判定、欠落ヘッダー、コメント検証とロール確認の順序を補正。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt",
+        "src/main/kotlin/com/example/purchasedesk/data/Database.kt",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt"
+      ],
+      "replacement": "承認者（APPROVER）が、提出済み（SUBMITTED）の購入申請を差し戻し済み（RETURNED）に変更します。\n\n【認証と変更操作の検査】\n- 有効なpd_session Cookieと、そのセッションのX-CSRF-Tokenヘッダーが必要です。\n- Originを優先し、Originがない場合はRefererを確認します。両方がない場合は同一オリジンの検査を省略します。ヘッダーがある場合は、Hostから求めたオリジンまたは設定されたpublicOriginと一致する必要があります。\n- Cookieがない、またはセッショントークンが無効なら401です。サーバー側ではセッションの作成日時による期限判定を行っていません。\n\n【本文と処理の順序】\n認証、同一オリジンの検査、CSRFの検査、JSON本文の解析、commentの検証の順に進みます。その後、APPROVERロールであることを確認し、申請を取得して状態を変更します。commentは必須で、前後の空白を除いた長さが1〜1000文字である必要があります。\n成功すると状態がRETURNEDになり、RETURNの操作履歴に差し戻し理由を保存します。\n\n【失敗時の対処】\n- 400: JSONやcommentが不正です。本文の形式と差し戻し理由を確認してください。\n- 401: ログインしていない、またはセッションが無効です。ログインし直してください。\n- 403: 変更操作の検査に失敗した、または承認者ではありません。Cookie、CSRF、送信元、ユーザーの役割を確認してください。\n- 404: 申請がありません。IDを確認してください。\n- 409: SUBMITTED以外の状態です。申請の現在の状態を確認してください。\n- 500: サーバー内部エラーです。サーバーログを確認してください。"
+    },
+    {
+      "operationId": "createRequest",
+      "field": "/operation/description",
+      "reason": "作成後のDRAFT状態、前後の空白の扱い、入力検証とロール確認の順序を明記。",
+      "source_paths": [
+        "src/main/kotlin/com/example/purchasedesk/http/ApiServer.kt",
+        "src/main/kotlin/com/example/purchasedesk/service/Service.kt",
+        "src/main/kotlin/com/example/purchasedesk/domain/Validation.kt"
+      ],
+      "replacement": "購入申請をDRAFT（下書き）状態で作成します。\n\n【認証と認可】\n- 認証: `pd_session` Cookie に有効なセッショントークンが必要です。無効または欠落の場合は 401 が返ります。\n- 認可: ユーザーのロールが `EMPLOYEE`（社員）である必要があります。`APPROVER`（承認者）が呼び出すと 403 が返ります。\n\n【CSRF 保護】\n- 変更操作であるため、CSRF トークンの検証が行われます。\n- `X-CSRF-Token` ヘッダーに、現在のセッションに紐付けられた CSRF トークンを送信する必要があります。トークンが不正または欠落の場合は 403 が返ります。\n- 同一オリジンチェック（Origin/Referer ヘッダー）も実施されます。Origin ヘッダーが優先され、欠落時は Referer ヘッダーが参照されます。両方が欠落している場合はチェックがスキップされます。ヘッダーが存在する場合、サーバーの期待するオリジンと一致しない場合は 403 が返ります。\n\n【入力データ】\n- `itemName`: 品名。前後の空白を除いた長さが1〜100文字。\n- `quantity`: 数量。1 以上、1000 以下の整数。\n- `unitPriceYen`: 単価（円）。0 以上、1,000,000 以下の整数。\n- `reason`: 購入理由。空白以外で 1 文字以上、1000 文字以下。\n- 合計金額（quantity * unitPriceYen）が 100,000,000 円を超えると 400 が返ります。\n\n【エラー】\n- 400: 入力値の検証エラー（形式、範囲、合計金額の上限超過など）。\n- 401: ログインしていない、またはセッションが無効。\n- 403: 権限不足（承認者が呼び出した場合）、CSRF トークン不正、またはオリジン不一致。\n- 500: サーバー内部エラー。\n\n【検査順序】\n認証、同一オリジン、CSRF、本文の解析と入力値、EMPLOYEEロールの順に検査します。たとえば承認者が不正な入力を送った場合、ロール確認より前に400となることがあります。"
+    }
+  ],
+  "scope_note": "Canonical JSON inputs are documented; compatibility coercions and HTML form endpoints are outside this reference."
+}

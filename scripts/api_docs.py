@@ -13,6 +13,7 @@ from openapi_spec_validator import validate as validate_openapi
 import yaml
 
 from serverless_docs import source_bundle, evidence_catalog
+from api_docs_context import digest, for_operation, load_memory, load_writing_context, with_context
 
 OPERATIONS = {
     'getSession': ('get', '/api/session'),
@@ -76,7 +77,7 @@ def source_context(entries):
         for item in evidence_catalog(entries).values()]}
 
 
-def make_payload(op_id, entries):
+def make_payload(op_id, entries, writing_context=None, feedback=None):
     method, path = OPERATIONS[op_id]
     prompt = (
         'API利用者向けに、指定した1操作のOpenAPI 3.1 Operation Objectを日本語で作成する。'
@@ -95,7 +96,7 @@ def make_payload(op_id, entries):
         '例の資格情報はYOUR_USERNAME、YOUR_PASSWORD、トークンはEXAMPLE_TOKENとする。'
         'このソースだけで確定できない点はunknownsに残す。根拠は入力のIDから選び、引用を生成しない。'
         '回答は指定JSONのみ。長い思考文やMarkdownの囲みは不要。')
-    return {'input': {'openai_route': '/v1/chat/completions', 'openai_input': {
+    payload = {'input': {'openai_route': '/v1/chat/completions', 'openai_input': {
         'model': 'qwen3.8-27b-fp8', 'stream': False, 'temperature': 0.2,
         'max_tokens': 6144, 'chat_template_kwargs': {'enable_thinking': False},
         'messages': [{'role': 'system', 'content': prompt}, {'role': 'user', 'content':
@@ -105,21 +106,29 @@ def make_payload(op_id, entries):
         'response_format': {'type': 'json_schema', 'json_schema': {
             'name': 'api_operation', 'schema': response_schema(op_id, entries)}},
     }}, 'policy': {'executionTimeout': 300000, 'ttl': 1200000}}
+    return with_context(payload, writing_context, feedback or []) if writing_context or feedback else payload
 
 
-def prepare(entries, out, operations=None):
+def prepare(entries, out, operations=None, writing_context=None, feedback_memory=None):
     operations = selected_operations(operations)
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     payloads = {}
     for op_id in operations:
-        payload = make_payload(op_id, entries)
+        history = for_operation(feedback_memory, op_id) if feedback_memory else []
+        payload = make_payload(op_id, entries, writing_context, history)
         save(out / (op_id + '.payload.json'), payload)
         raw = (out / (op_id + '.payload.json')).read_bytes()
         payloads[op_id] = {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
     manifest = {'source_files': source_identity(entries), 'payloads': payloads,
                 'operations': list(operations), 'planned_generation_jobs': len(operations), 'jobs_submitted': 0,
                 'review_jobs_planned': False, 'token_count': 'not measured with model tokenizer'}
+    if writing_context:
+        save(out / 'writing-context.json', writing_context)
+        manifest['writing_context_sha256'] = digest(writing_context)
+    if feedback_memory:
+        save(out / 'feedback-input.json', feedback_memory)
+        manifest['feedback_input_sha256'] = digest(feedback_memory)
     save(out / 'manifest.json', manifest)
     return manifest
 
@@ -444,10 +453,15 @@ def main():
     parser.add_argument('--prepared', help='Directory created by prepare')
     parser.add_argument('--responses', help='Directory containing OPERATION.response.json worker results')
     parser.add_argument('--operation', action='append', choices=OPERATIONS)
+    parser.add_argument('--writing-context', type=Path, help='Defaults to config/api-docs-writing-context.json in the repository')
+    parser.add_argument('--feedback-memory', type=Path, help='Defaults to the repository feedback seed when present')
     args = parser.parse_args()
     entries = sources(args.repo)
     if args.command == 'prepare':
-        print(json.dumps(prepare(entries, args.out, args.operation), ensure_ascii=False, indent=2))
+        context = load_writing_context(args.writing_context or Path(args.repo) / 'config/api-docs-writing-context.json')
+        memory_path = args.feedback_memory or Path(args.repo) / 'config/api-docs-feedback-memory.json'
+        memory = load_memory(memory_path, entries, OPERATIONS) if args.feedback_memory or memory_path.exists() else None
+        print(json.dumps(prepare(entries, args.out, args.operation, context, memory), ensure_ascii=False, indent=2))
         return
     if not args.prepared or not args.responses:
         parser.error('render requires --prepared and --responses')
