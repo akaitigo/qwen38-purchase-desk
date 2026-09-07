@@ -107,6 +107,29 @@ class Jobs(unittest.TestCase):
             self.assertEqual(record['semantic_review'],'not_performed')
             self.assertTrue((out/'REVIEW.md').exists())
 
+    def test_selected_topics_restrict_schema_and_validation(self):
+        entries, doc = self.fixture()
+        topic = module.TOPICS[0]
+        payload = module.make_payload(entries, [topic])['input']['openai_input']
+        self.assertEqual(payload['response_format']['type'], 'json_schema')
+        schema = payload['response_format']['json_schema']['schema']
+        self.assertEqual(schema['properties']['claims']['maxItems'], 1)
+        props = schema['properties']['claims']['items']['properties']
+        self.assertEqual(props['topic']['enum'], [topic])
+        self.assertEqual(props['evidence']['items']['properties']['path']['enum'], ['src/main/A.kt'])
+        doc['claims'] = doc['claims'][:1]
+        module.extract_document(self.wrapped(doc), entries, [topic])
+        with self.assertRaises(ValueError): module.extract_document(self.wrapped(doc), entries)
+
+    def test_topic_mismatch_and_duplicate_selection_rejected(self):
+        entries, doc = self.fixture()
+        for selection in [[], ['invented'], [module.TOPICS[0]] * 2]:
+            with self.subTest(selection=selection), self.assertRaises(ValueError):
+                module.make_payload(entries, selection)
+        doc['claims'] = doc['claims'][:1]
+        with self.assertRaises(ValueError):
+            module.extract_document(self.wrapped(doc), entries, [module.TOPICS[1]])
+
     def test_source_selection_rejects_untracked_and_symlinks(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);(root/'src/main').mkdir(parents=True)
