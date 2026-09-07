@@ -1,0 +1,45 @@
+name: API documentation format checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feat/qwen-docs-ci]
+    paths:
+      - 'src/main/**'
+      - 'config/api-docs-*'
+      - 'scripts/api_docs.py'
+      - 'scripts/check_api_docs.py'
+      - 'scripts/serverless_docs.py'
+      - 'tests/api_docs_fixture.py'
+      - 'tests/test_api_docs.py'
+      - '.github/workflows/api-docs.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install locked document validators in a virtual environment
+        run: |
+          python3 -m venv .venv-docs
+          .venv-docs/bin/python -m pip install --require-hashes -r config/api-docs-requirements.txt
+      - name: Build app and check document contracts without GPU
+        run: |
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          ./scripts/verify-all.sh
+          .venv-docs/bin/python tests/test_api_docs.py --smoke-out generated/api-docs-synthetic
+          .venv-docs/bin/python scripts/api_docs.py prepare --out generated/api-docs-prepared
+      - name: Save explicitly synthetic preview and local API check results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: api-docs-synthetic-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            generated/api-docs-synthetic/
+            generated/api-docs-prepared/manifest.json
+          if-no-files-found: warn
+          retention-days: 7

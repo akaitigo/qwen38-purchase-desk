@@ -13,3 +13,8 @@ python3 -m unittest discover -s tests -p 'test_serverless_docs.py' -v
 python3 -m unittest discover -s tests -p 'test_docs_pipeline.py' -v
 ./dev test
 ./dev build
+if [[ ! -x .venv-docs/bin/python ]]; then
+  echo 'API docs checks require: python3 -m venv .venv-docs && .venv-docs/bin/python -m pip install --require-hashes -r config/api-docs-requirements.txt' >&2
+  exit 1
+fi
+.venv-docs/bin/python -m unittest discover -s tests -p 'test_api_docs.py' -v
