@@ -5,6 +5,7 @@ and response is retained; a clear model review is not publication approval.
 """
 import argparse
 from copy import deepcopy
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -23,6 +24,39 @@ from serverless_docs import API, run_job
 
 class BudgetExhausted(TimeoutError):
     pass
+
+
+def response_measurement(result):
+    """Keep reported usage separate from elapsed time and actual billing."""
+    output = result.get('output')
+    if isinstance(output, list):
+        output = output[0] if len(output) == 1 else None
+    output = output if isinstance(output, dict) else {}
+    usage = output.get('usage')
+    usage = usage if isinstance(usage, dict) else {}
+    measured = {'reported_model': output.get('model'),
+                'weight_identity_verified': False}
+    for name in ('prompt_tokens', 'completion_tokens', 'total_tokens'):
+        value = usage.get(name)
+        measured[name] = value if type(value) is int and value >= 0 else None
+    return measured
+
+
+def measurement_summary(records):
+    groups = {}
+    for stage in ('generate', 'review', 'repair'):
+        rows = [r for r in records if r['stage'] == stage]
+        group = {'jobs_attempted': len(rows)}
+        for key in ('prompt_tokens', 'completion_tokens', 'total_tokens',
+                    'delay_ms', 'execution_ms', 'client_elapsed_seconds'):
+            values = [r.get(key) for r in rows]
+            valid = [v for v in values if type(v) in (int, float) and v >= 0]
+            group[key] = {'reported_sum': sum(valid), 'reported_jobs': len(valid),
+                          'complete': len(valid) == len(rows)}
+        groups[stage] = group
+    return {'by_stage': groups, 'billed_usd': None,
+            'billing_status': 'requires_endpoint_billing_including_startup_idle_and_failures',
+            'timing_note': 'Job delay/execution and client elapsed time are not billed worker time.'}
 
 
 def review_schema(op_id, entries):
@@ -90,11 +124,17 @@ def run_pipeline(entries, operations, out, invoke, verify, *, max_repairs=1,
     out = Path(out)
     out.mkdir(parents=True, exist_ok=False)
     start = clock()
+    records = []
     documents, reviews = {}, {}
     summary = {'status': 'running', 'execution_mode': execution_mode, 'operations': list(operations),
                'sources': source_identity(entries), 'jobs_started': 0, 'repairs_completed': 0,
                'max_jobs': max_jobs, 'max_repairs': max_repairs, 'total_seconds_limit': total_seconds,
                'human_review_required': True, 'publication_authorized': False, 'steps': []}
+    summary['source_scale'] = {
+        'files': len(entries), 'utf8_bytes': sum(len(e['text'].encode('utf-8')) for e in entries),
+        'physical_lines': sum(len(e['text'].splitlines()) for e in entries),
+        'nonempty_lines': sum(bool(line.strip()) for e in entries for line in e['text'].splitlines()),
+        'scope': 'selected_application_sources_not_entire_repository'}
 
     def remaining():
         seconds = total_seconds - (clock() - start)
@@ -115,17 +155,23 @@ def run_pipeline(entries, operations, out, invoke, verify, *, max_repairs=1,
         folder = out / name
         folder.mkdir()
         record = {'stage': stage, 'operationId': op_id, 'status': 'starting',
+                  'started_at': datetime.now(timezone.utc).isoformat(),
                   'payload_sha256': hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()}
+        records.append(record)
+        call_start = clock()
         summary['steps'].append({'directory': name, 'stage': stage, 'operationId': op_id})
         save(out / 'summary.json', summary)
         try:
             result = invoke(payload, record, seconds)
             save(folder / 'response.json', result)
+            record.update(response_measurement(result))
             return result
         except BaseException as error:
             record['failure_type'] = type(error).__name__
             raise
         finally:
+            record['client_elapsed_seconds'] = round(clock() - call_start, 3)
+            record['finished_at'] = datetime.now(timezone.utc).isoformat()
             save(folder / 'metadata.json', record)
 
     try:
@@ -194,6 +240,7 @@ def run_pipeline(entries, operations, out, invoke, verify, *, max_repairs=1,
             raise
     finally:
         summary['elapsed_seconds'] = round(clock() - start, 3)
+        summary['measurement'] = measurement_summary(records)
         summary['latest_reviews'] = reviews
         save(out / 'documents.json', list(documents.values()))
         if len(documents) == len(operations):

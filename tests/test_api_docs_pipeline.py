@@ -9,7 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from api_docs import OPERATIONS, SMALL_SCOPE, evidence_catalog, sources
-from api_docs_pipeline import parse_review, run_pipeline
+from api_docs_pipeline import measurement_summary, parse_review, response_measurement, run_pipeline
 from api_docs_fixture import documents
 from check_api_docs import run_checks
 
@@ -58,6 +58,21 @@ class ApiPipelineTest(unittest.TestCase):
         return run_pipeline(self.entries, SMALL_SCOPE, Path(self.temp.name) / 'pipeline', model,
                             lambda spec: run_checks(spec, ROOT), execution_mode='synthetic_fixture', **kwargs)
 
+    def test_missing_usage_is_not_reported_as_a_complete_zero_cost_run(self):
+        record = response_measurement({'output': [{'model': 'alias', 'usage': {
+            'prompt_tokens': 120, 'completion_tokens': True, 'total_tokens': -1}}]})
+        self.assertEqual(record['prompt_tokens'], 120)
+        self.assertIsNone(record['completion_tokens'])
+        self.assertIsNone(record['total_tokens'])
+        self.assertFalse(record['weight_identity_verified'])
+        summary = measurement_summary([
+            dict(stage='generate', **record), {'stage': 'generate', 'failure_type': 'TimeoutError'},
+            {'stage': 'repair', 'prompt_tokens': 130, 'completion_tokens': 25}])
+        self.assertEqual(summary['by_stage']['generate']['prompt_tokens'],
+                         {'reported_sum': 120, 'reported_jobs': 1, 'complete': False})
+        self.assertEqual(summary['by_stage']['repair']['completion_tokens']['reported_sum'], 25)
+        self.assertIsNone(summary['billed_usd'])
+
     def test_actual_http_mismatch_repairs_and_rechecks(self):
         model = ScriptedModel(self.docs, wrong_status=True)
         result = self.run_case(model, max_jobs=8)
@@ -65,6 +80,13 @@ class ApiPipelineTest(unittest.TestCase):
         self.assertEqual(result['repairs_completed'], 1)
         self.assertIn(('repair', 'createRequest'), model.calls)
         self.assertFalse(result['publication_authorized'])
+        self.assertEqual(result['source_scale']['files'], len(self.entries))
+        measurement = result['measurement']['by_stage']
+        self.assertEqual(measurement['generate']['jobs_attempted'], 3)
+        self.assertEqual(measurement['repair']['jobs_attempted'], 1)
+        self.assertEqual(measurement['review']['jobs_attempted'], 3)
+        self.assertFalse(measurement['generate']['prompt_tokens']['complete'])
+        self.assertTrue(measurement['generate']['client_elapsed_seconds']['complete'])
         out = Path(self.temp.name) / 'pipeline'
         self.assertEqual(json.loads((out / 'checks-0.json').read_text())['status'], 'failed')
         self.assertEqual(json.loads((out / 'checks-1.json').read_text())['status'], 'passed')
