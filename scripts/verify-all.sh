@@ -18,3 +18,4 @@ if [[ ! -x .venv-docs/bin/python ]]; then
   exit 1
 fi
 .venv-docs/bin/python -m unittest discover -s tests -p 'test_api_docs.py' -v
+.venv-docs/bin/python -m unittest discover -s tests -p 'test_api_docs_pipeline.py' -v

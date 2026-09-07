@@ -8,12 +8,18 @@ on:
       - 'config/api-docs-*'
       - 'scripts/api_docs.py'
       - 'scripts/check_api_docs.py'
+      - 'scripts/api_docs_pipeline.py'
+      - 'scripts/api_docs_tokens.py'
       - 'scripts/serverless_docs.py'
       - 'tests/api_docs_fixture.py'
       - 'tests/test_api_docs.py'
+      - 'tests/test_api_docs_pipeline.py'
       - '.github/workflows/api-docs.yml'
 permissions:
   contents: read
+concurrency:
+  group: api-docs
+  cancel-in-progress: false
 jobs:
   offline:
     runs-on: ubuntu-latest
@@ -32,6 +38,7 @@ jobs:
           export PATH="$JAVA_HOME/bin:$PATH"
           ./scripts/verify-all.sh
           .venv-docs/bin/python tests/test_api_docs.py --smoke-out generated/api-docs-synthetic
+          .venv-docs/bin/python tests/test_api_docs_pipeline.py --smoke-out generated/api-docs-loop-synthetic
           .venv-docs/bin/python scripts/api_docs.py prepare --out generated/api-docs-prepared
       - name: Save explicitly synthetic preview and local API check results
         if: always()
@@ -40,6 +47,43 @@ jobs:
           name: api-docs-synthetic-${{ github.sha }}-${{ github.run_attempt }}
           path: |
             generated/api-docs-synthetic/
+            generated/api-docs-loop-synthetic/
             generated/api-docs-prepared/manifest.json
+          if-no-files-found: warn
+          retention-days: 7
+  generate:
+    needs: offline
+    if: vars.RUNPOD_API_DOCS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install document validators and build the local API fixture
+        run: |
+          python3 -m venv .venv-docs
+          .venv-docs/bin/python -m pip install --require-hashes -r config/api-docs-requirements.txt
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          ./dev build
+      - name: Generate, check, review, repair and recheck API documentation
+        env:
+          RUNPOD_ENDPOINT_ID: ${{ vars.RUNPOD_ENDPOINT_ID }}
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          DOCS_SCOPE: ${{ vars.RUNPOD_API_DOCS_SCOPE || 'auth-create' }}
+          DOCS_MAX_JOBS: ${{ vars.RUNPOD_API_DOCS_MAX_JOBS || '8' }}
+        run: |
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          .venv-docs/bin/python scripts/api_docs_pipeline.py --live \
+            --scope "$DOCS_SCOPE" --max-jobs "$DOCS_MAX_JOBS" \
+            --max-repairs 1 --total-seconds 720 --out generated/api-docs-live
+      - name: Preserve candidate documents and verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: api-docs-live-${{ github.sha }}-${{ github.run_attempt }}
+          path: generated/api-docs-live/
           if-no-files-found: warn
           retention-days: 7

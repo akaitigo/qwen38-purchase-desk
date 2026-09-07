@@ -10,10 +10,16 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from jsonschema import ValidationError
 from api_docs import assemble, extract, load_responses, make_payload, OPERATIONS, prepare, render, sources
 from api_docs_fixture import documents
-from check_api_docs import ContractMismatch, run_checks
+from check_api_docs import Client, ContractMismatch, run_checks
+from api_docs_tokens import count_ids
 
 
 class ApiDocsTest(unittest.TestCase):
+    def test_token_count_uses_ids_not_encoding_dictionary_fields(self):
+        self.assertEqual(count_ids({'input_ids': [1, 2, 3, 4], 'attention_mask': [1, 1, 1, 1]}), 4)
+        self.assertEqual(count_ids([1, 2, 3]), 3)
+        with self.assertRaises(ValueError):
+            count_ids({'input_ids': [[1, 2, 3]]})
     @classmethod
     def setUpClass(cls):
         cls.entries = sources(ROOT)
@@ -33,11 +39,24 @@ class ApiDocsTest(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 render(spec, self.docs, self.entries, out, 'synthetic_fixture')
         result = run_checks(spec, ROOT)
-        self.assertEqual(len(result['checks']), 20)
+        self.assertEqual(len(result['checks']), 68)
+        self.assertEqual(set(result['scope']), set(OPERATIONS))
+        self.assertIn('logout_invalidates_server_token', {c['case'] for c in result['checks']})
 
     def test_example_type_disagreement(self):
         self.docs[2]['operation']['requestBody']['content']['application/json']['example']['quantity'] = 'two'
         with self.assertRaises(ValidationError):
+            assemble(self.docs, self.entries)
+
+    def test_request_id_cannot_change_target_path(self):
+        client = Client('http://127.0.0.1:1')
+        for request_id in ('../login', 'x?query=1', 'https://invalid.example'):
+            with self.assertRaises(ValueError):
+                client.call('getRequest', request_id=request_id)
+
+    def test_missing_path_parameter_is_invalid_openapi(self):
+        self.docs[5]['operation']['parameters'] = []  # getRequest
+        with self.assertRaises(Exception):
             assemble(self.docs, self.entries)
 
     def test_missing_operation_and_duplicates(self):
@@ -140,7 +159,7 @@ class ApiDocsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             manifest = prepare(self.entries, directory)
             self.assertEqual(manifest['jobs_submitted'], 0)
-            self.assertEqual(manifest['planned_generation_jobs'], 3)
+            self.assertEqual(manifest['planned_generation_jobs'], 10)
             for op_id in OPERATIONS:
                 payload = make_payload(op_id, self.entries)
                 text = json.dumps(payload, ensure_ascii=False)

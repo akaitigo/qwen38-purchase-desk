@@ -92,9 +92,72 @@ def documents(entries):
             },
         }},
     ]
+    result.extend(remaining_documents(result, error, session))
     # Synthetic evidence IDs exercise binding only; they are not model citations.
     catalog = evidence_catalog(entries)
     ids = [key for key, e in catalog.items() if e['path'].endswith('/ApiServer.kt')]
     for doc in result:
         doc.update(evidence=ids[:1], unknowns=[])
+    return result
+
+
+def remaining_documents(initial, error, session):
+    purchase = deepcopy(initial[2]['operation']['responses']['201']['content']['application/json']['schema']['properties']['request'])
+    purchase['properties']['state']['enum'] = ['DRAFT', 'SUBMITTED', 'RETURNED', 'APPROVED']
+    purchase['properties']['history']['items']['properties']['action']['enum'] = ['CREATE', 'UPDATE', 'SUBMIT', 'RETURN', 'APPROVE']
+    sample = deepcopy(initial[2]['operation']['responses']['201']['content']['application/json']['example'])
+    wrapper = obj({'request': purchase})
+    path_id = {'in': 'path', 'name': 'id', 'required': True, 'schema': string(), 'description': '作成時の応答から取得した申請ID'}
+    mutation_security = [{'sessionCookie': [], 'csrfHeader': []}]
+    defs = [
+        ('logout', 'ログアウトする',
+         'Origin/Refererを検査し、不一致なら403です。両方がなければ通過します。'
+         'ログイン済みならCookieとCSRFを確認してサーバー側のセッションを削除します。'
+         '未ログインなら匿名CookieとCSRFを照合します。成功時は認証Cookieを消去し、匿名Cookieと新しいCSRFを返します。'
+         'CSRFはヘッダー優先で、POST本文による補完もあります。', [403]),
+        ('listRequests', '申請一覧を取得する',
+         'ログインが必要です。社員には自分の申請だけ、承認者には全員の申請を返します。ページング用パラメーターはありません。', [401]),
+        ('getRequest', '申請を取得する',
+         'ログインが必要です。社員は自分の申請だけ、承認者は全員の申請を参照できます。存在しないIDや社員が他人の申請を指定した場合は404です。', [401, 404]),
+        ('updateRequest', '申請を編集する',
+         '社員が自分のDRAFTまたはRETURNEDの申請を編集できます。4項目を全て送信します。PATCHでも部分更新には対応していません。'
+         '認証、Origin/CSRF、本文検証、社員の役割、存在と閲覧権限、状態の順に検査します。'
+         '他の社員の申請は404、承認者は403、SUBMITTEDまたはAPPROVEDは409です。'
+         'CSRFはヘッダーで送信します。PATCH本文からのCSRF補完はありません。数量と単価の積は1億円以下です。', [400, 401, 403, 404, 409]),
+        ('submitRequest', '申請を提出・再提出する',
+         '社員が自分のDRAFTまたはRETURNEDをSUBMITTEDにします。認証、Origin/CSRF、社員の役割、存在、所有者、状態の順に検査します。'
+         '他の社員の申請は403、存在しない申請は404、既にSUBMITTEDまたはAPPROVEDなら409です。本文は不要です。', [401, 403, 404, 409]),
+        ('returnRequest', '申請を差し戻す',
+         '承認者がSUBMITTEDの申請をRETURNEDにします。認証、Origin/CSRF、コメント、承認者の役割、存在、状態の順に検査します。'
+         'commentは前後の空白を除いて1〜1000文字です。社員は403、存在しない申請は404、SUBMITTED以外は409です。', [400, 401, 403, 404, 409]),
+        ('approveRequest', '申請を承認する',
+         '承認者がSUBMITTEDの申請をAPPROVEDにします。認証、Origin/CSRF、承認者の役割、存在、状態の順に検査します。'
+         '社員は403、存在しない申請は404、SUBMITTED以外や二重承認は409です。本文は不要です。', [401, 403, 404, 409]),
+    ]
+    result = []
+    for op_id, summary, description, errors in defs:
+        op = {'operationId': op_id, 'summary': summary, 'description': description,
+              'parameters': [] if op_id in ('logout', 'listRequests') else [deepcopy(path_id)],
+              'security': [{'sessionCookie': []}] if op_id in ('listRequests', 'getRequest') else deepcopy(mutation_security),
+              'responses': {'200': response('操作の結果を返します。', deepcopy(wrapper), deepcopy(sample))}}
+        for status in errors:
+            op['responses'][str(status)] = response({400: '入力を修正してください。', 401: 'ログインしてください。',
+                403: 'Cookie・CSRFと役割・所有者を確認してください。', 404: 'IDと閲覧範囲を確認してください。',
+                409: '現在の状態を取得し直してください。同じ操作をそのまま繰り返さないでください。'}[status],
+                error, {'error': '操作を受け付けられません'})
+        if op_id == 'logout':
+            op['security'] = deepcopy(initial[1]['operation']['security'])
+            op['responses']['200'] = response('セッションを終了し、新しい匿名セッションを返します。', deepcopy(session),
+                {'user': None, 'csrfToken': 'EXAMPLE_TOKEN'}, 'pd_sessionをMax-Age=0で消去し、pd_anonを発行。HttpOnly; SameSite=Lax; Path=/')
+        elif op_id == 'listRequests':
+            op['responses']['200'] = response('権限内の申請をrequests配列で返します。',
+                obj({'requests': {'type': 'array', 'items': purchase}}), {'requests': [deepcopy(sample['request'])]})
+        elif op_id == 'updateRequest':
+            op['requestBody'] = deepcopy(initial[2]['operation']['requestBody'])
+            op['requestBody']['content']['application/json']['example']['reason'] = '差戻し内容を踏まえて数量を確認しました'
+        elif op_id == 'returnRequest':
+            op['requestBody'] = {'required': True, 'content': {'application/json': {
+                'schema': obj({'comment': string('差戻し理由。前後の空白を除去', minLength=1, maxLength=1000)}),
+                'example': {'comment': '数量を確認してください'}}}}
+        result.append({'operationId': op_id, 'operation': op})
     return result
