@@ -1,0 +1,40 @@
+name: Qwen source documentation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feat/qwen-docs-ci]
+    paths:
+      - 'src/main/**'
+      - 'config/docs-source-files.txt'
+      - 'scripts/serverless_docs.py'
+      - '.github/workflows/qwen-docs.yml'
+permissions:
+  contents: read
+concurrency:
+  group: qwen-docs
+  cancel-in-progress: false
+jobs:
+  generate:
+    if: vars.RUNPOD_DOCS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Generate documentation through a queued job
+        env:
+          RUNPOD_ENDPOINT_ID: ${{ vars.RUNPOD_ENDPOINT_ID }}
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+        run: >-
+          python3 scripts/serverless_docs.py
+          --repo . --files config/docs-source-files.txt
+          --out generated/qwen-docs
+      - name: Save document and execution metadata
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qwen-docs-${{ github.sha }}-${{ github.run_attempt }}
+          path: generated/qwen-docs/
+          if-no-files-found: warn
+          retention-days: 7
