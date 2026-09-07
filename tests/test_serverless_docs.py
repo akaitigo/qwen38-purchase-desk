@@ -53,9 +53,10 @@ class Jobs(unittest.TestCase):
 
     def fixture(self):
         entries = [{'path':'src/main/A.kt','text':'fun approve() { return approved }'}]
-        claims = [{'topic':t,'statement':'未確認: 入力不足','evidence':[]} for t in module.TOPICS]
-        claims[0] = {'topic':module.TOPICS[0], 'statement':'合成テスト用の説明', 'evidence':[
-            {'path':'src/main/A.kt','symbol':'approve','quote':'fun approve() { return approved }'}]}
+        claims = [{'topic':t,'statement':'未確認: 入力不足','conditions':'未確認: 入力不足','exceptions':'未確認: 入力不足','evidence':[]} for t in module.TOPICS]
+        claims[0] = {'topic':module.TOPICS[0], 'statement':'合成テスト用の説明',
+                     'conditions':'合成入力', 'exceptions':'未確認: 合成入力',
+                     'evidence':[next(iter(module.evidence_catalog(entries)))]}
         return entries, {'claims':claims,'unknowns':['合成入力']}
 
     def wrapped(self, doc):
@@ -68,11 +69,41 @@ class Jobs(unittest.TestCase):
         self.assertIn('内容の確認は未実施', result['markdown'])
 
     def test_invalid_evidence_rejected(self):
-        for field, value in [('path','src/main/Other.kt'), ('symbol','prove'), ('symbol','approve, approved'), ('quote','fun approve() { return false }')]:
-            with self.subTest(field=field, value=value):
-                entries, doc = self.fixture()
-                doc['claims'][0]['evidence'][0][field] = value
-                with self.assertRaises(ValueError): module.extract_document(self.wrapped(doc), entries)
+        for evidence in [['invented'], [{'quote':'invented'}]]:
+            entries, doc = self.fixture()
+            doc['claims'][0]['evidence'] = evidence
+            with self.assertRaises(ValueError): module.extract_document(self.wrapped(doc), entries)
+
+    def test_model_cannot_inject_its_own_quote(self):
+        entries, doc = self.fixture()
+        doc['claims'][0]['quote'] = 'made up source'
+        with self.assertRaises(ValueError): module.extract_document(self.wrapped(doc), entries)
+
+    def test_source_changes_invalidate_ids(self):
+        entries, doc = self.fixture()
+        entries[0]['text'] += '\n// changed'
+        with self.assertRaisesRegex(ValueError, 'stale'):
+            module.extract_document(self.wrapped(doc), entries)
+
+    def test_conditions_and_exceptions_are_required(self):
+        for field in ['conditions', 'exceptions']:
+            entries, doc = self.fixture()
+            del doc['claims'][0][field]
+            with self.assertRaises(ValueError): module.extract_document(self.wrapped(doc), entries)
+
+    def test_duplicate_or_excessive_evidence_rejected(self):
+        for count in [2, 5]:
+            entries, doc = self.fixture()
+            doc['claims'][0]['evidence'] *= count
+            with self.assertRaises(ValueError): module.extract_document(self.wrapped(doc), entries)
+
+    def test_catalog_preserves_whitespace_quotes_and_line_ranges(self):
+        text = 'fun x() {\r\n  print("日本語")\r\n}\r\n'
+        first = next(iter(module.evidence_catalog([{'path':'src/main/A.kt','text':text}]).values()))
+        self.assertEqual(first['quote'], text)
+        self.assertEqual((first['start_line'],first['end_line']), (1,3))
+        other = next(iter(module.evidence_catalog([{'path':'src/main/B.kt','text':text}])))
+        self.assertNotEqual(first['id'], other)
 
     def test_missing_duplicate_and_unsupported_topics_rejected(self):
         for defect in ['missing', 'duplicate', 'unsupported']:
@@ -116,7 +147,7 @@ class Jobs(unittest.TestCase):
         self.assertEqual(schema['properties']['claims']['maxItems'], 1)
         props = schema['properties']['claims']['items']['properties']
         self.assertEqual(props['topic']['enum'], [topic])
-        self.assertEqual(props['evidence']['items']['properties']['path']['enum'], ['src/main/A.kt'])
+        self.assertEqual(props['evidence']['items']['enum'], list(module.evidence_catalog(entries)))
         doc['claims'] = doc['claims'][:1]
         module.extract_document(self.wrapped(doc), entries, [topic])
         with self.assertRaises(ValueError): module.extract_document(self.wrapped(doc), entries)
