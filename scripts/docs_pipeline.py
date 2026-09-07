@@ -30,13 +30,13 @@ def review_payload(entries, document):
     row = {'type': 'object', 'additionalProperties': False,
         'required': ['topic', 'verdict', 'reason', 'evidence'], 'properties': {
             'topic': {'type': 'string', 'enum': topics}, 'verdict': verdict,
-            'reason': {'type': 'string', 'minLength': 1},
+            'reason': {'type': 'string', 'minLength': 1, 'maxLength': 180},
             'evidence': {'type': 'array', 'maxItems': 8,
                 'items': {'type': 'string', 'enum': list(evidence_catalog(entries))}}}}
     schema = {'type': 'object', 'additionalProperties': False,
         'required': ['reviews', 'unknowns_verdict', 'unknowns_reason'], 'properties': {
             'reviews': {'type': 'array', 'minItems': len(topics), 'maxItems': len(topics), 'items': row},
-            'unknowns_verdict': verdict, 'unknowns_reason': {'type': 'string', 'minLength': 1}}}
+            'unknowns_verdict': verdict, 'unknowns_reason': {'type': 'string', 'minLength': 1, 'maxLength': 180}}}
     # A live 11-topic review spent its entire 4096-token budget on reasoning.
     # Produce the bounded assessment directly; correctness still needs inspection.
     p = make_payload(entries, topics, thinking=False)
@@ -48,6 +48,9 @@ def review_payload(entries, document):
             '草稿の全項目をソースに照らして検査し、指定JSONで日本語の指摘を返してください。'
             '各topicを重複なく1件ずつ返す。supportedはソースで支持できる場合だけ、誤りや重要な条件漏れはrevise、'
             '判断できない場合はuncertain。reasonには修正すべき内容または確認した条件を具体的に書く。'
+            'reasonは180文字以内の短い日本語とし、コード断片を引用しない。JSONは改行・インデントなしで返す。'
+            'statementだけでなくconditionsとexceptionsの全記述を照合する。正常系の一致だけでsupportedにしない。'
+            '条件や例外を否定する実行経路が一つでもあればreviseにする。'
             'supportedとreviseは根拠IDを1個以上添える。引用の存在だけで説明を正しいと認めない。'
             '呼出し元と共通関数、役割と所有者、分岐の実行順序、早期return、未認証、ヘッダー欠落、'
             'APIとHTMLの差、Cookie期限とサーバー側失効、存在しない処理の推測、断定しすぎる日本語を確認する。'
@@ -73,7 +76,7 @@ def extract_review(result, entries, topics):
     if not isinstance(review, dict) or set(review) != {'reviews', 'unknowns_verdict', 'unknowns_reason'}:
         raise ValueError('Invalid review shape')
     verdicts = {'supported', 'revise', 'uncertain'}
-    if review['unknowns_verdict'] not in verdicts or not isinstance(review['unknowns_reason'], str) or not review['unknowns_reason'].strip():
+    if review['unknowns_verdict'] not in verdicts or not isinstance(review['unknowns_reason'], str) or not review['unknowns_reason'].strip() or len(review['unknowns_reason']) > 180:
         raise ValueError('Missing unknowns assessment')
     if not isinstance(review['reviews'], list):
         raise ValueError('Missing topic reviews')
@@ -85,7 +88,7 @@ def extract_review(result, entries, topics):
         if not isinstance(topic, str) or topic not in topics or topic in seen:
             raise ValueError('Unknown or duplicate review topic')
         seen.add(topic)
-        if row['verdict'] not in verdicts or not isinstance(row['reason'], str) or not row['reason'].strip():
+        if row['verdict'] not in verdicts or not isinstance(row['reason'], str) or not row['reason'].strip() or len(row['reason']) > 180:
             raise ValueError('Invalid verdict')
         ids = row['evidence']
         if not isinstance(ids, list) or len(ids) > 8 or any(not isinstance(i, str) or i not in catalog for i in ids):

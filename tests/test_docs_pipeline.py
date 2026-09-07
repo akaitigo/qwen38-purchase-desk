@@ -120,7 +120,7 @@ class PipelineTests(unittest.TestCase):
 
     def test_review_must_cover_topics_and_have_valid_evidence(self):
         entries, topics, _, review, _ = fixture()
-        for defect in ['missing', 'duplicate', 'evidence', 'truncated', 'empty']:
+        for defect in ['missing', 'duplicate', 'evidence', 'truncated', 'empty', 'long_reason', 'long_unknowns']:
             response = review()
             choice = response['output']['choices'][0]
             value = json.loads(choice['message']['content'])
@@ -128,6 +128,8 @@ class PipelineTests(unittest.TestCase):
             elif defect == 'duplicate': value['reviews'][1] = value['reviews'][0]
             elif defect == 'evidence': value['reviews'][0]['evidence'] = ['invented']
             elif defect == 'truncated': choice['finish_reason'] = 'length'
+            elif defect == 'long_reason': value['reviews'][0]['reason'] = 'あ' * 181
+            elif defect == 'long_unknowns': value['unknowns_reason'] = 'あ' * 181
             else: value['reviews'][0]['evidence'] = []
             choice['message']['content'] = json.dumps(value)
             with self.subTest(defect=defect), self.assertRaises(ValueError):
